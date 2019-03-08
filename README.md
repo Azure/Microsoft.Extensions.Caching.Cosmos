@@ -1,3 +1,47 @@
+# Microsoft Caching Extension using Azure Cosmos DB
+
+This repository contains an implementation of `IDistributedCache` using Azure Cosmos DB that can be leveraged in ASP.NET Core as a Session State Provider.
+
+There is also a [sample](./sample/Startup.cs) on how to instantiate the provider as part of ASP.NET Core's pipeline.
+
+## CosmosClient initialization
+
+The implementation provides two distinct options:
+
+### Use an existing instance of a CosmosClient
+
+This option will make the provider re-use an existing `CosmosClient` instance, which won't be disposed when the provider is disposed.
+
+```
+services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
+{
+    cacheOptions.ContainerName = Configuration["CosmosCacheContainer"];
+    cacheOptions.DatabaseName = Configuration["CosmosCacheDatabase"];
+    cacheOptions.CosmosClient = existingCosmosClient;
+    
+    cacheOptions.CreateIfNotExists = true;
+});
+```
+
+### Use a defined CosmosConfiguration
+
+This option will make the provider maintain an internal instance of `CosmosClient` that will get disposed when the provider is disposed. The `CosmosClient` will be created using the provided `CosmosConfiguration`.
+
+```
+services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
+{
+    cacheOptions.ContainerName = Configuration["CosmosCacheContainer"];
+    cacheOptions.DatabaseName = Configuration["CosmosCacheDatabase"];
+    cacheOptions.Configuration = new CosmosConfiguration(Configuration["CosmosConnectionString"])
+        .UseConnectionModeDirect();
+    
+    cacheOptions.CreateIfNotExists = true;
+});
+```
+
+### State storage
+
+The provider stores the state in a container within a database, both parameters are required within the `CosmosCacheOptions` initialization. An optional parameter, `CreateIfNotExists` will make sure to create the container if it does not exist with an optimized configuration for key-value storage. `ContainerThroughput` can be used to specify a particular Throughput on the container.
 
 # Contributing
 
