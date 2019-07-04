@@ -19,7 +19,7 @@
         private const int DefaultTimeToLive = 60000;
 
         private CosmosClient cosmosClient;
-        private CosmosContainer cosmosContainer;
+        private Container cosmosContainer;
         private readonly SemaphoreSlim connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
         private bool initializedClient;
 
@@ -42,7 +42,7 @@
                 throw new ArgumentNullException(nameof(optionsAccessor.Value.ContainerName));
             }
 
-            if (optionsAccessor.Value.Configuration == null && optionsAccessor.Value.CosmosClient == null)
+            if (optionsAccessor.Value.ClientBuilder == null && optionsAccessor.Value.CosmosClient == null)
             {
                 throw new ArgumentNullException("You need to specify either a CosmosConfiguration or an existing CosmosClient in the CosmosCacheOptions.");
             }
@@ -74,8 +74,8 @@
 
             await this.ConnectAsync();
 
-            CosmosItemResponse<CosmosCacheSession> cosmosCacheSessionResponse = await this.cosmosContainer.Items.ReadItemAsync<CosmosCacheSession>(
-                partitionKey: key,
+            ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse = await this.cosmosContainer.ReadItemAsync<CosmosCacheSession>(
+                partitionKey: new PartitionKey(key),
                 id: key,
                 requestOptions: null,
                 cancellationToken: token).ConfigureAwait(false);
@@ -87,17 +87,13 @@
 
             try
             {
-                await this.cosmosContainer.Items.ReplaceItemAsync(
-                        partitionKey: key,
+                await this.cosmosContainer.ReplaceItemAsync(
+                        partitionKey: new PartitionKey(key),
                         id: key,
                         item: cosmosCacheSessionResponse.Resource,
-                        requestOptions: new CosmosItemRequestOptions()
+                        requestOptions: new ItemRequestOptions()
                         {
-                            AccessCondition = new AccessCondition()
-                            {
-                                Type = AccessConditionType.IfMatch,
-                                Condition = cosmosCacheSessionResponse.ETag
-                            }
+                            IfMatchEtag = cosmosCacheSessionResponse.ETag
                         },
                         cancellationToken: token).ConfigureAwait(false);
             }
@@ -137,8 +133,8 @@
 
             await this.ConnectAsync();
 
-            await this.cosmosContainer.Items.DeleteItemAsync<CosmosCacheSession>(
-                partitionKey: key,
+            await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
+                partitionKey: new PartitionKey(key),
                 id: key,
                 requestOptions: null,
                 cancellationToken: token).ConfigureAwait(false);
@@ -173,8 +169,8 @@
 
             await this.ConnectAsync();
 
-            await this.cosmosContainer.Items.UpsertItemAsync(
-                partitionKey: key,
+            await this.cosmosContainer.UpsertItemAsync(
+                partitionKey: new PartitionKey(key),
                 item: CosmosCache.BuildCosmosCacheSession(
                     key,
                     value,
@@ -206,47 +202,57 @@
             }
         }
 
-        private async Task<CosmosContainer> CosmosContainerInitializeAsync()
+        private async Task<Container> CosmosContainerInitializeAsync()
         {
             this.initializedClient = this.options.CosmosClient == null;
-            this.cosmosClient = this.options.CosmosClient ?? new CosmosClient(this.options.Configuration.UseUserAgentSuffix(CosmosCache.UseUserAgentSuffix));
+            this.cosmosClient = this.GetClientInstance();
             if (this.options.CreateIfNotExists)
             {
-                await this.cosmosClient.Databases.CreateDatabaseIfNotExistsAsync(this.options.DatabaseName).ConfigureAwait(false);
+                await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.options.DatabaseName).ConfigureAwait(false);
 
                 int defaultTimeToLive = options.DefaultTimeToLiveInMs.HasValue
                     && options.DefaultTimeToLiveInMs.Value > 0 ? options.DefaultTimeToLiveInMs.Value : CosmosCache.DefaultTimeToLive;
 
                 // Container is optimized as Key-Value store excluding all properties
-                await this.cosmosClient.Databases[this.options.DatabaseName].Containers.CreateContainerIfNotExistsAsync(
-                    new CosmosContainerSettings(
-                        this.options.ContainerName,
-                        CosmosCache.ContainerPartitionKeyPath)
-                    {
-                        IndexingPolicy = new IndexingPolicy()
-                        {
-                            IndexingMode = IndexingMode.Consistent,
-                            ExcludedPaths = new Collection<ExcludedPath>()
-                            {
-                                new ExcludedPath() { Path = "/*" }
-                            },
-                            IncludedPaths = new Collection<IncludedPath>()
-                        },
-                        DefaultTimeToLive = TimeSpan.FromMilliseconds(defaultTimeToLive)
-                    },
-                    throughput: this.options.ContainerThroughput
-                    ).ConfigureAwait(false);
+                await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, CosmosCache.ContainerPartitionKeyPath)
+                    .WithDefaultTimeToLive(-1)
+                    .WithIndexingPolicy()
+                        .WithIndexingMode(IndexingMode.Consistent)
+                        .WithIncludedPaths()
+                            .Attach()
+                        .WithExcludedPaths()
+                            .Path("/*")
+                            .Attach()
+                    .Attach()
+                .CreateAsync(this.options.ContainerThroughput).ConfigureAwait(false);
             }
             else
             {
-                CosmosContainerResponse existingContainer = await this.cosmosClient.Databases[this.options.DatabaseName].Containers[this.options.ContainerName].ReadAsync().ConfigureAwait(false);
+                ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
                 if (existingContainer.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new InvalidOperationException($"Cannot find an existing container named {this.options.ContainerName} within database {this.options.DatabaseName}");
                 }
             }
 
-            return this.cosmosClient.Databases[this.options.DatabaseName].Containers[this.options.ContainerName];
+            return this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName);
+        }
+
+        private CosmosClient GetClientInstance()
+        {
+            if (this.options.CosmosClient != null)
+            {
+                return this.options.CosmosClient;
+            }
+
+            if (this.options.ClientBuilder == null)
+            {
+                throw new ArgumentNullException(nameof(this.options.ClientBuilder));
+            }
+
+            return this.options.ClientBuilder
+                    .WithApplicationName(CosmosCache.UseUserAgentSuffix)
+                    .Build();
         }
 
         private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, DateTimeOffset? creationTime = null)

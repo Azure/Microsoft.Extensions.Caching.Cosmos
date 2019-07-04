@@ -1,14 +1,16 @@
 ﻿namespace Microsoft.Extensions.Caching.Cosmos
 {
+    using System.Security;
     using Microsoft.Azure.Cosmos;
+    using Microsoft.Azure.Cosmos.Fluent;
     using Microsoft.Extensions.Options;
 
     public class CosmosCacheOptions : IOptions<CosmosCacheOptions>
     {
         /// <summary>
-        /// Instance of a configuration to create a Cosmos Client with. Either use this or provide an existing <see cref="CosmosClient"/>.
+        /// Instance of <see cref="CosmosClientBuilder"/> to build a Cosmos Client with. Either use this or provide an existing <see cref="CosmosClient"/>.
         /// </summary>
-        public CosmosConfiguration Configuration { get; set; }
+        public CosmosClientBuilder ClientBuilder { get; set; }
 
         /// <summary>
         /// Existing CosmosClient to use for the storage operations. Either use this or provide a <see cref="Configuration"/> to provision a client.

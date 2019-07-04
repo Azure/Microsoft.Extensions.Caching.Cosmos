@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Caching.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,8 +38,7 @@ namespace AspNetCoreSessionState
             {
                 cacheOptions.ContainerName = Configuration["CosmosCacheContainer"];
                 cacheOptions.DatabaseName = Configuration["CosmosCacheDatabase"];
-                cacheOptions.Configuration = new CosmosConfiguration(Configuration["CosmosConnectionString"])
-                    .UseConnectionModeDirect();
+                cacheOptions.ClientBuilder = new CosmosClientBuilder(Configuration["CosmosConnectionString"]);
                 
                 cacheOptions.CreateIfNotExists = true;
             });
