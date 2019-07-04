@@ -42,7 +42,7 @@
                 throw new ArgumentNullException(nameof(optionsAccessor.Value.ContainerName));
             }
 
-            if (optionsAccessor.Value.Configuration == null && optionsAccessor.Value.CosmosClient == null)
+            if (optionsAccessor.Value.ClientBuilder == null && optionsAccessor.Value.CosmosClient == null)
             {
                 throw new ArgumentNullException("You need to specify either a CosmosConfiguration or an existing CosmosClient in the CosmosCacheOptions.");
             }
@@ -245,12 +245,14 @@
                 return this.options.CosmosClient;
             }
 
-            if (string.IsNullOrEmpty(this.options.ConnectionString))
+            if (this.options.ClientBuilder == null)
             {
-                throw new ArgumentNullException(nameof(this.options.ConnectionString));
+                throw new ArgumentNullException(nameof(this.options.ClientBuilder));
             }
 
-            return new CosmosClient(this.options.ConnectionString, this.options.Configuration);
+            return this.options.ClientBuilder
+                    .WithApplicationName(CosmosCache.UseUserAgentSuffix)
+                    .Build();
         }
 
         private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, DateTimeOffset? creationTime = null)
