@@ -23,17 +23,16 @@ services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
 });
 ```
 
-### Use a defined CosmosConfiguration
+### Use a defined CosmosBuilder
 
-This option will make the provider maintain an internal instance of `CosmosClient` that will get disposed when the provider is disposed. The `CosmosClient` will be created using the provided `CosmosConfiguration`.
+This option will make the provider maintain an internal instance of `CosmosClient` that will get disposed when the provider is disposed. The `CosmosClient` will be created using the provided `CosmosBuilder`.
 
 ```
 services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
 {
     cacheOptions.ContainerName = Configuration["CosmosCacheContainer"];
     cacheOptions.DatabaseName = Configuration["CosmosCacheDatabase"];
-    cacheOptions.Configuration = new CosmosConfiguration(Configuration["CosmosConnectionString"])
-        .UseConnectionModeDirect();
+    cacheOptions.ClientBuilder = new CosmosClientBuilder(Configuration["CosmosConnectionString"]);
     
     cacheOptions.CreateIfNotExists = true;
 });
