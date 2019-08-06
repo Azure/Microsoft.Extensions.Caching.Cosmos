@@ -1,6 +1,9 @@
-﻿namespace Microsoft.Extensions.Caching.Cosmos
+﻿//------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.  All rights reserved.
+//------------------------------------------------------------
+
+namespace Microsoft.Extensions.Caching.Cosmos
 {
-    using System.Security;
     using Microsoft.Azure.Cosmos;
     using Microsoft.Azure.Cosmos.Fluent;
     using Microsoft.Extensions.Options;

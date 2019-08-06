@@ -1,7 +1,11 @@
-﻿namespace Microsoft.Extensions.Caching.Cosmos
+﻿//------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.  All rights reserved.
+//------------------------------------------------------------
+
+namespace Microsoft.Extensions.Caching.Cosmos
 {
     using Newtonsoft.Json;
-
+    
     internal class CosmosCacheSession
     {
         [JsonProperty("id")]
