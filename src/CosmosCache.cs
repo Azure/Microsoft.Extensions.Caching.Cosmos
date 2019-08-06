@@ -1,4 +1,8 @@
-﻿namespace Microsoft.Extensions.Caching.Cosmos
+﻿//------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.  All rights reserved.
+//------------------------------------------------------------
+
+namespace Microsoft.Extensions.Caching.Cosmos
 {
     using System;
     using System.Collections.ObjectModel;
@@ -16,7 +20,7 @@
     {
         private const string UseUserAgentSuffix = "Microsoft.Extensions.Caching.Cosmos";
         private const string ContainerPartitionKeyPath = "/id";
-        private const int DefaultTimeToLive = 60000;
+        private const int DefaultTimeToLive = -1;
 
         private CosmosClient cosmosClient;
         private Container cosmosContainer;
@@ -74,13 +78,15 @@
 
             await this.ConnectAsync();
 
-            ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse = await this.cosmosContainer.ReadItemAsync<CosmosCacheSession>(
-                partitionKey: new PartitionKey(key),
-                id: key,
-                requestOptions: null,
-                cancellationToken: token).ConfigureAwait(false);
-
-            if (cosmosCacheSessionResponse.StatusCode == HttpStatusCode.NotFound)
+            try
+            {
+                ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse = await this.cosmosContainer.ReadItemAsync<CosmosCacheSession>(
+                    partitionKey: new PartitionKey(key),
+                    id: key,
+                    requestOptions: null,
+                    cancellationToken: token).ConfigureAwait(false);
+            }
+            catch(CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
@@ -213,23 +219,33 @@
                 int defaultTimeToLive = options.DefaultTimeToLiveInMs.HasValue
                     && options.DefaultTimeToLiveInMs.Value > 0 ? options.DefaultTimeToLiveInMs.Value : CosmosCache.DefaultTimeToLive;
 
-                // Container is optimized as Key-Value store excluding all properties
-                await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, CosmosCache.ContainerPartitionKeyPath)
-                    .WithDefaultTimeToLive(-1)
-                    .WithIndexingPolicy()
-                        .WithIndexingMode(IndexingMode.Consistent)
-                        .WithIncludedPaths()
-                            .Attach()
-                        .WithExcludedPaths()
-                            .Path("/*")
-                            .Attach()
-                    .Attach()
-                .CreateAsync(this.options.ContainerThroughput).ConfigureAwait(false);
+                try
+                {
+                    ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // Container is optimized as Key-Value store excluding all properties
+                    await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, CosmosCache.ContainerPartitionKeyPath)
+                        .WithDefaultTimeToLive(defaultTimeToLive)
+                        .WithIndexingPolicy()
+                            .WithIndexingMode(IndexingMode.Consistent)
+                            .WithIncludedPaths()
+                                .Attach()
+                            .WithExcludedPaths()
+                                .Path("/*")
+                                .Attach()
+                        .Attach()
+                    .CreateAsync(this.options.ContainerThroughput).ConfigureAwait(false);
+                }
             }
             else
             {
-                ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
-                if (existingContainer.StatusCode == HttpStatusCode.NotFound)
+                try
+                {
+                    ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new InvalidOperationException($"Cannot find an existing container named {this.options.ContainerName} within database {this.options.DatabaseName}");
                 }
