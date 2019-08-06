@@ -78,15 +78,16 @@ namespace Microsoft.Extensions.Caching.Cosmos
 
             await this.ConnectAsync();
 
+            ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
             try
             {
-                ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse = await this.cosmosContainer.ReadItemAsync<CosmosCacheSession>(
+                cosmosCacheSessionResponse = await this.cosmosContainer.ReadItemAsync<CosmosCacheSession>(
                     partitionKey: new PartitionKey(key),
                     id: key,
                     requestOptions: null,
                     cancellationToken: token).ConfigureAwait(false);
             }
-            catch(CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
             }
