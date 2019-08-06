@@ -1,3 +1,7 @@
+//------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.  All rights reserved.
+//------------------------------------------------------------
+
 namespace Microsoft.Extensions.Caching.Cosmos.Tests
 {
     using System;
