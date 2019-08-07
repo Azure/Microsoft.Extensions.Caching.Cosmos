@@ -1,4 +1,8 @@
-﻿namespace Microsoft.Extensions.DependencyInjection
+﻿//------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.  All rights reserved.
+//------------------------------------------------------------
+
+namespace Microsoft.Extensions.DependencyInjection
 {
     using System;
     using Microsoft.Extensions.Caching.Cosmos;
