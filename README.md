@@ -1,5 +1,7 @@
 # Microsoft Caching Extension using Azure Cosmos DB
 
+[![Build Status](https://cosmos-db-sdk-public.visualstudio.com/cosmos-db-sdk-public/_apis/build/status/Microsoft.Extensions.Caching.Cosmos%20-%20Nightly?branchName=master)](https://cosmos-db-sdk-public.visualstudio.com/cosmos-db-sdk-public/_build/latest?definitionId=46&branchName=master)
+
 This repository contains an implementation of `IDistributedCache` using Azure Cosmos DB that can be leveraged in ASP.NET Core as a Session State Provider.
 
 There is also a [sample](./sample/Startup.cs) on how to instantiate the provider as part of ASP.NET Core's pipeline.
