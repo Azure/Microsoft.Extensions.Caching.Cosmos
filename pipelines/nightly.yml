@@ -1,5 +1,9 @@
-pr:
-- master
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily midnight build
+  branches:
+    include:
+    - master
 
 strategy:
   matrix:
@@ -20,10 +24,3 @@ steps:
     command: build
     projects: '**/*.csproj'
     arguments: '--configuration Release'
-- script: dotnet test ./tests/CosmosDistributedCacheTests.csproj --logger trx
-  displayName: 'Running tests'
-- task: PublishTestResults@2
-  condition: succeededOrFailed()
-  inputs:
-    testRunner: VSTest
-    testResultsFiles: '**/*.trx'
