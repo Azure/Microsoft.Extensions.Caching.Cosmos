@@ -8,6 +8,9 @@ namespace Microsoft.Extensions.Caching.Cosmos
     using Microsoft.Azure.Cosmos.Fluent;
     using Microsoft.Extensions.Options;
 
+    /// <summary>
+    /// Options to configure Microsoft.Extensions.Caching.Cosmos
+    /// </summary>
     public class CosmosCacheOptions : IOptions<CosmosCacheOptions>
     {
         /// <summary>
@@ -16,7 +19,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
         public CosmosClientBuilder ClientBuilder { get; set; }
 
         /// <summary>
-        /// Existing CosmosClient to use for the storage operations. Either use this or provide a <see cref="Configuration"/> to provision a client.
+        /// Existing CosmosClient to use for the storage operations. Either use this or provide a <see cref="ClientBuilder"/> to provision a client.
         /// </summary>
         public CosmosClient CosmosClient { get; set; }
 

@@ -29,6 +29,10 @@ namespace Microsoft.Extensions.Caching.Cosmos
 
         private readonly CosmosCacheOptions options;
 
+        /// <summary>
+        /// Distributed cache implementation over Azure Cosmos DB
+        /// </summary>
+        /// <param name="optionsAccessor">Options accesor.</param>
         public CosmosCache(IOptions<CosmosCacheOptions> optionsAccessor)
         {
             if (optionsAccessor == null)
@@ -54,6 +58,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             this.options = optionsAccessor.Value;
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (this.initializedClient && this.cosmosClient != null)
@@ -62,11 +67,13 @@ namespace Microsoft.Extensions.Caching.Cosmos
             }
         }
 
+        /// <inheritdoc/>
         public byte[] Get(string key)
         {
             return GetAsync(key).GetAwaiter().GetResult();
         }
 
+        /// <inheritdoc/>
         public async Task<byte[]> GetAsync(string key, CancellationToken token = default(CancellationToken))
         {
             token.ThrowIfCancellationRequested();
@@ -114,21 +121,25 @@ namespace Microsoft.Extensions.Caching.Cosmos
             return cosmosCacheSessionResponse.Resource.Content;
         }
 
+        /// <inheritdoc/>
         public void Refresh(string key)
         {
             Get(key);
         }
 
+        /// <inheritdoc/>
         public Task RefreshAsync(string key, CancellationToken token = default(CancellationToken))
         {
             return GetAsync(key, token);
         }
 
+        /// <inheritdoc/>
         public void Remove(string key)
         {
             RemoveAsync(key).GetAwaiter().GetResult();
         }
 
+        /// <inheritdoc/>
         public async Task RemoveAsync(string key, CancellationToken token = default(CancellationToken))
         {
             token.ThrowIfCancellationRequested();
@@ -147,6 +158,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 cancellationToken: token).ConfigureAwait(false);
         }
 
+        /// <inheritdoc/>
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
             this.SetAsync(
@@ -155,6 +167,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 options).GetAwaiter().GetResult();
         }
 
+        /// <inheritdoc/>
         public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default(CancellationToken))
         {
             token.ThrowIfCancellationRequested();
