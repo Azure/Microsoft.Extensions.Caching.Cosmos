@@ -19,8 +19,8 @@
     <IsShipping>true</IsShipping>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageLicenseExpression>MIT<PackageLicenseExpression/>
-    <RepositoryUrl>https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos<RepositoryUrl/>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
