@@ -31,7 +31,7 @@ steps:
             break;
           }
         }
-      
+
     displayName:  Install Public Cosmos DB Emulator
     failOnStderr:  true
     errorActionPreference:  stop
