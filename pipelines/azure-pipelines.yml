@@ -18,8 +18,6 @@ pool:
   vmImage: $(imageName)
 
 steps:
-- checkout: self  # self represents the repo where the initial Pipelines YAML file was found
-    clean: true  # if true, execute `execute git clean -ffdx && git reset --hard HEAD` before fetching
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
