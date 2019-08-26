@@ -31,10 +31,6 @@ steps:
             break;
           }
         }
-
-    displayName:  Install Public Cosmos DB Emulator
-    failOnStderr:  true
-    errorActionPreference:  stop
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
