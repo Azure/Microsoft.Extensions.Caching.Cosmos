@@ -6,14 +6,12 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 {
     using System;
     using System.Net;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Cosmos;
     using Microsoft.Azure.Cosmos.Fluent;
     using Microsoft.Extensions.Caching.Cosmos;
     using Microsoft.Extensions.Caching.Distributed;
     using Microsoft.Extensions.Options;
-    using Moq;
     using Newtonsoft.Json;
     using Xunit;
 
