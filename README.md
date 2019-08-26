@@ -14,13 +14,12 @@ The implementation provides two distinct options:
 
 This option will make the provider re-use an existing `CosmosClient` instance, which won't be disposed when the provider is disposed.
 
-```
+```c-sharp
 services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
 {
     cacheOptions.ContainerName = Configuration["CosmosCacheContainer"];
     cacheOptions.DatabaseName = Configuration["CosmosCacheDatabase"];
     cacheOptions.CosmosClient = existingCosmosClient;
-    
     cacheOptions.CreateIfNotExists = true;
 });
 ```
@@ -29,13 +28,12 @@ services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
 
 This option will make the provider maintain an internal instance of `CosmosClient` that will get disposed when the provider is disposed. The `CosmosClient` will be created using the provided `CosmosBuilder`.
 
-```
+```c-sharp
 services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
 {
     cacheOptions.ContainerName = Configuration["CosmosCacheContainer"];
     cacheOptions.DatabaseName = Configuration["CosmosCacheDatabase"];
     cacheOptions.ClientBuilder = new CosmosClientBuilder(Configuration["CosmosConnectionString"]);
-    
     cacheOptions.CreateIfNotExists = true;
 });
 ```
