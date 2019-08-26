@@ -24,7 +24,7 @@ steps:
     command: build
     projects: '**/*.csproj'
     arguments: '--configuration Release'
-- script: dotnet test ./tests/CosmosDistributedCacheTests.csproj --logger trx
+- script: dotnet test ./tests/unit/CosmosDistributedCacheTests.csproj --logger trx
   displayName: 'Running tests'
 - task: PublishTestResults@2
   condition: succeededOrFailed()
