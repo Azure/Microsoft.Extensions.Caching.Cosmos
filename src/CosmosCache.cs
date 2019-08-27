@@ -14,25 +14,23 @@ namespace Microsoft.Extensions.Caching.Cosmos
     using Microsoft.Extensions.Options;
 
     /// <summary>
-    /// Distributed cache implementation over Azure Cosmos DB
+    /// Distributed cache implementation over Microsoft Azure Cosmos DB.
     /// </summary>
     public class CosmosCache : IDistributedCache, IDisposable
     {
         private const string UseUserAgentSuffix = "Microsoft.Extensions.Caching.Cosmos";
         private const string ContainerPartitionKeyPath = "/id";
         private const int DefaultTimeToLive = -1;
-
+        private readonly SemaphoreSlim connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
+        private readonly CosmosCacheOptions options;
         private CosmosClient cosmosClient;
         private Container cosmosContainer;
-        private readonly SemaphoreSlim connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
         private bool initializedClient;
 
-        private readonly CosmosCacheOptions options;
-
         /// <summary>
-        /// Distributed cache implementation over Azure Cosmos DB
+        /// Initializes a new instance of the <see cref="CosmosCache"/> class.
         /// </summary>
-        /// <param name="optionsAccessor">Options accesor.</param>
+        /// <param name="optionsAccessor">Options accessor.</param>
         public CosmosCache(IOptions<CosmosCacheOptions> optionsAccessor)
         {
             if (optionsAccessor == null)
@@ -70,7 +68,9 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// <inheritdoc/>
         public byte[] Get(string key)
         {
-            return GetAsync(key).GetAwaiter().GetResult();
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+            return this.GetAsync(key).GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
         }
 
         /// <inheritdoc/>
@@ -107,12 +107,11 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         item: cosmosCacheSessionResponse.Resource,
                         requestOptions: new ItemRequestOptions()
                         {
-                            IfMatchEtag = cosmosCacheSessionResponse.ETag
+                            IfMatchEtag = cosmosCacheSessionResponse.ETag,
                         },
                         cancellationToken: token).ConfigureAwait(false);
             }
-            catch (CosmosException cosmosException) 
-                when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
+            catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
             {
                 // Race condition on replace, we need to get the latest version of the item
                 return await this.GetAsync(key, token).ConfigureAwait(false);
@@ -124,19 +123,21 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// <inheritdoc/>
         public void Refresh(string key)
         {
-            Get(key);
+            this.Get(key);
         }
 
         /// <inheritdoc/>
         public Task RefreshAsync(string key, CancellationToken token = default(CancellationToken))
         {
-            return GetAsync(key, token);
+            return this.GetAsync(key, token);
         }
 
         /// <inheritdoc/>
         public void Remove(string key)
         {
-            RemoveAsync(key).GetAwaiter().GetResult();
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+            this.RemoveAsync(key).GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
         }
 
         /// <inheritdoc/>
@@ -161,10 +162,9 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// <inheritdoc/>
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
-            this.SetAsync(
-                key,
-                value,
-                options).GetAwaiter().GetResult();
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+            this.SetAsync(key, value, options).GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
         }
 
         /// <inheritdoc/>
@@ -199,6 +199,64 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 cancellationToken: token).ConfigureAwait(false);
         }
 
+        private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, DateTimeOffset? creationTime = null)
+        {
+            if (!creationTime.HasValue)
+            {
+                creationTime = DateTimeOffset.UtcNow;
+            }
+
+            DateTimeOffset? absoluteExpiration = CosmosCache.GetAbsoluteExpiration(creationTime.Value, options);
+
+            long? timeToLive = CosmosCache.GetExpirationInSeconds(creationTime.Value, absoluteExpiration, options);
+
+            return new CosmosCacheSession()
+            {
+                SessionKey = key,
+                Content = content,
+                TimeToLive = timeToLive,
+            };
+        }
+
+        private static long? GetExpirationInSeconds(DateTimeOffset creationTime, DateTimeOffset? absoluteExpiration, DistributedCacheEntryOptions options)
+        {
+            if (absoluteExpiration.HasValue && options.SlidingExpiration.HasValue)
+            {
+                return (long)Math.Min(
+                    (absoluteExpiration.Value - creationTime).TotalSeconds,
+                    options.SlidingExpiration.Value.TotalSeconds);
+            }
+            else if (absoluteExpiration.HasValue)
+            {
+                return (long)(absoluteExpiration.Value - creationTime).TotalSeconds;
+            }
+            else if (options.SlidingExpiration.HasValue)
+            {
+                return (long)options.SlidingExpiration.Value.TotalSeconds;
+            }
+
+            return null;
+        }
+
+        private static DateTimeOffset? GetAbsoluteExpiration(DateTimeOffset creationTime, DistributedCacheEntryOptions options)
+        {
+            if (options.AbsoluteExpiration.HasValue && options.AbsoluteExpiration <= creationTime)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(DistributedCacheEntryOptions.AbsoluteExpiration),
+                    options.AbsoluteExpiration.Value,
+                    "The absolute expiration value must be in the future.");
+            }
+
+            var absoluteExpiration = options.AbsoluteExpiration;
+            if (options.AbsoluteExpirationRelativeToNow.HasValue)
+            {
+                absoluteExpiration = creationTime + options.AbsoluteExpirationRelativeToNow;
+            }
+
+            return absoluteExpiration;
+        }
+
         private async Task ConnectAsync(CancellationToken token = default(CancellationToken))
         {
             token.ThrowIfCancellationRequested();
@@ -230,8 +288,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.options.DatabaseName).ConfigureAwait(false);
 
-                int defaultTimeToLive = options.DefaultTimeToLiveInMs.HasValue
-                    && options.DefaultTimeToLiveInMs.Value > 0 ? options.DefaultTimeToLiveInMs.Value : CosmosCache.DefaultTimeToLive;
+                int defaultTimeToLive = this.options.DefaultTimeToLiveInMs.HasValue
+                    && this.options.DefaultTimeToLiveInMs.Value > 0 ? this.options.DefaultTimeToLiveInMs.Value : CosmosCache.DefaultTimeToLive;
 
                 try
                 {
@@ -283,63 +341,6 @@ namespace Microsoft.Extensions.Caching.Cosmos
             return this.options.ClientBuilder
                     .WithApplicationName(CosmosCache.UseUserAgentSuffix)
                     .Build();
-        }
-
-        private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, DateTimeOffset? creationTime = null)
-        {
-            if (!creationTime.HasValue)
-            {
-                creationTime = DateTimeOffset.UtcNow;
-            }
-
-            DateTimeOffset? absoluteExpiration = CosmosCache.GetAbsoluteExpiration(creationTime.Value, options);
-
-            long? timeToLive = CosmosCache.GetExpirationInSeconds(creationTime.Value, absoluteExpiration, options);
-
-            return new CosmosCacheSession()
-            {
-                SessionKey = key,
-                Content = content,
-                TimeToLive = timeToLive
-            };
-        }
-
-        private static long? GetExpirationInSeconds(DateTimeOffset creationTime, DateTimeOffset? absoluteExpiration, DistributedCacheEntryOptions options)
-        {
-            if (absoluteExpiration.HasValue && options.SlidingExpiration.HasValue)
-            {
-                return (long)Math.Min(
-                    (absoluteExpiration.Value - creationTime).TotalSeconds,
-                    options.SlidingExpiration.Value.TotalSeconds);
-            }
-            else if (absoluteExpiration.HasValue)
-            {
-                return (long)(absoluteExpiration.Value - creationTime).TotalSeconds;
-            }
-            else if (options.SlidingExpiration.HasValue)
-            {
-                return (long)options.SlidingExpiration.Value.TotalSeconds;
-            }
-
-            return null;
-        }
-
-        private static DateTimeOffset? GetAbsoluteExpiration(DateTimeOffset creationTime, DistributedCacheEntryOptions options)
-        {
-            if (options.AbsoluteExpiration.HasValue && options.AbsoluteExpiration <= creationTime)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(DistributedCacheEntryOptions.AbsoluteExpiration),
-                    options.AbsoluteExpiration.Value,
-                    "The absolute expiration value must be in the future.");
-            }
-            var absoluteExpiration = options.AbsoluteExpiration;
-            if (options.AbsoluteExpirationRelativeToNow.HasValue)
-            {
-                absoluteExpiration = creationTime + options.AbsoluteExpirationRelativeToNow;
-            }
-
-            return absoluteExpiration;
         }
     }
 }

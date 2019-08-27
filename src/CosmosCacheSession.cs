@@ -5,7 +5,7 @@
 namespace Microsoft.Extensions.Caching.Cosmos
 {
     using Newtonsoft.Json;
-    
+
     internal class CosmosCacheSession
     {
         [JsonProperty("id")]
