@@ -9,45 +9,48 @@ namespace Microsoft.Extensions.Caching.Cosmos
     using Microsoft.Extensions.Options;
 
     /// <summary>
-    /// Options to configure Microsoft.Extensions.Caching.Cosmos
+    /// Options to configure Microsoft.Extensions.Caching.Cosmos.
     /// </summary>
     public class CosmosCacheOptions : IOptions<CosmosCacheOptions>
     {
         /// <summary>
-        /// Instance of <see cref="CosmosClientBuilder"/> to build a Cosmos Client with. Either use this or provide an existing <see cref="CosmosClient"/>.
+        /// Gets or sets an instance of <see cref="CosmosClientBuilder"/> to build a Cosmos Client with. Either use this or provide an existing <see cref="CosmosClient"/>.
         /// </summary>
         public CosmosClientBuilder ClientBuilder { get; set; }
 
         /// <summary>
-        /// Existing CosmosClient to use for the storage operations. Either use this or provide a <see cref="ClientBuilder"/> to provision a client.
+        /// Gets or sets an existing CosmosClient to use for the storage operations. Either use this or provide a <see cref="ClientBuilder"/> to provision a client.
         /// </summary>
         public CosmosClient CosmosClient { get; set; }
 
         /// <summary>
-        /// Database name to store the cache.
+        /// Gets or sets the database name to store the cache.
         /// </summary>
         public string DatabaseName { get; set; }
 
         /// <summary>
-        /// Container name to store the cache.
+        /// Gets or sets the container name to store the cache.
         /// </summary>
         public string ContainerName { get; set; }
 
         /// <summary>
-        /// It will check for the Container existence and create it if it doesn't exist using <see cref="ContainerThroughput"/> as provisioned throughput and <see cref="DefaultTimeToLiveInMs"/>.
+        /// Gets or sets a value indicating whether initialization it will check for the Container existence and create it if it doesn't exist using <see cref="ContainerThroughput"/> as provisioned throughput and <see cref="DefaultTimeToLiveInMs"/>.
         /// </summary>
         public bool CreateIfNotExists { get; set; }
 
         /// <summary>
-        /// Provisioned throughput for the Container in case <see cref="CreateIfNotExists"/> is true and the Container does not exist.
+        /// Gets or sets the provisioned throughput for the Container in case <see cref="CreateIfNotExists"/> is true and the Container does not exist.
         /// </summary>
         public int? ContainerThroughput { get; set; }
 
         /// <summary>
-        /// Default Time to Live for the Container in case <see cref="CreateIfNotExists"/> is true and the Container does not exist.
+        /// Gets or sets the default Time to Live for the Container in case <see cref="CreateIfNotExists"/> is true and the Container does not exist.
         /// </summary>
         public int? DefaultTimeToLiveInMs { get; set; }
 
+        /// <summary>
+        /// Gets the current options values.
+        /// </summary>
         CosmosCacheOptions IOptions<CosmosCacheOptions>.Value
         {
             get { return this; }
