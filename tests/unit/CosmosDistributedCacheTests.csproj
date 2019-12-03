@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../src/CosmosDistributedCache.csproj"/>
+    <ProjectReference Include="../../src/CosmosDistributedCache.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
