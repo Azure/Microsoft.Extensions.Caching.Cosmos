@@ -42,6 +42,17 @@ services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
 
 The provider stores the state in a container within a database, both parameters are required within the `CosmosCacheOptions` initialization. An optional parameter, `CreateIfNotExists` will make sure to create the container if it does not exist with an optimized configuration for key-value storage. `ContainerThroughput` can be used to specify a particular Throughput on the container.
 
+### Cosmos account consistency
+
+Consistency in a distributed cache is important, especially when applications are deployed across multiple instances and user requests can be distributed across all of them. 
+Azure Cosmos DB has [multiple options](https://docs.microsoft.com/azure/cosmos-db/consistency-levels) when it comes to configuring consistency. When using it as a districuted cache provider, the following consistency levels are recommended:
+
+* Session: Recommended only if the ASP.NET application will be using **Application Request Routing Affinity**. This is enabled by default when hosting your ASP.NET application in [Azure App Service](https://docs.microsoft.com/azure/app-service/configure-common#configure-general-settings).
+* Bounded staleness
+* Strong
+
+Using other consistency levels is not recommended as read operations could be getting a stale version of the session.
+
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
