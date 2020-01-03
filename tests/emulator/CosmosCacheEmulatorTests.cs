@@ -5,6 +5,7 @@
 namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 {
     using System;
+    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Cosmos;
@@ -44,7 +45,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
                 DatabaseName = CosmosCacheEmulatorTests.databaseName,
                 ContainerThroughput = throughput,
                 CreateIfNotExists = true,
-                ClientBuilder = builder
+                ClientBuilder = builder,
+                DefaultTimeToLiveInMs = ttl
             });
 
             CosmosCache cache = new CosmosCache(options);
@@ -56,7 +58,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 
             ContainerResponse response = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadContainerAsync();
             Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.NotEqual(ttl, response.Resource.DefaultTimeToLive);
+            Assert.Equal(ttl, response.Resource.DefaultTimeToLive);
+            Assert.True(response.Resource.IndexingPolicy.ExcludedPaths.Any(e => e.Path.Equals("/*")));
 
             int? throughputContainer = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadThroughputAsync();
 
