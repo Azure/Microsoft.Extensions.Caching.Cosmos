@@ -258,7 +258,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 SessionKey = key,
                 Content = content,
                 TimeToLive = timeToLive,
-                IsSlidingExpiration = timeToLive.HasValue ? options.SlidingExpiration.HasValue : (bool?)null,
+                IsSlidingExpiration = timeToLive.HasValue && options.SlidingExpiration.HasValue,
             };
         }
 
