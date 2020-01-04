@@ -5,7 +5,6 @@
 namespace Microsoft.Extensions.Caching.Cosmos
 {
     using System;
-    using System.Collections.ObjectModel;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -99,6 +98,65 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 return null;
             }
 
+            // If using sliding expiration then replace item with itself in order to reset the ttl in Cosmos
+            if (cosmosCacheSessionResponse.Resource.IsSlidingExpiration.GetValueOrDefault())
+            {
+                try
+                {
+                    await this.cosmosContainer.ReplaceItemAsync(
+                            partitionKey: new PartitionKey(key),
+                            id: key,
+                            item: cosmosCacheSessionResponse.Resource,
+                            requestOptions: new ItemRequestOptions()
+                            {
+                                IfMatchEtag = cosmosCacheSessionResponse.ETag,
+                            },
+                            cancellationToken: token).ConfigureAwait(false);
+                }
+                catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
+                {
+                    // Race condition on replace, we need to get the latest version of the item
+                    return await this.GetAsync(key, token).ConfigureAwait(false);
+                }
+            }
+
+            return cosmosCacheSessionResponse.Resource.Content;
+        }
+
+        /// <inheritdoc/>
+        public void Refresh(string key)
+        {
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+            this.RefreshAsync(key).GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
+        }
+
+        /// <inheritdoc/>
+        public async Task RefreshAsync(string key, CancellationToken token = default(CancellationToken))
+        {
+            token.ThrowIfCancellationRequested();
+
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            await this.ConnectAsync();
+
+            ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
+            try
+            {
+                cosmosCacheSessionResponse = await this.cosmosContainer.ReadItemAsync<CosmosCacheSession>(
+                    partitionKey: new PartitionKey(key),
+                    id: key,
+                    requestOptions: null,
+                    cancellationToken: token).ConfigureAwait(false);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                return;
+            }
+
             try
             {
                 await this.cosmosContainer.ReplaceItemAsync(
@@ -113,23 +171,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
             }
             catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
             {
-                // Race condition on replace, we need to get the latest version of the item
-                return await this.GetAsync(key, token).ConfigureAwait(false);
+                // Race condition on replace, we do not need to refresh it
             }
-
-            return cosmosCacheSessionResponse.Resource.Content;
-        }
-
-        /// <inheritdoc/>
-        public void Refresh(string key)
-        {
-            this.Get(key);
-        }
-
-        /// <inheritdoc/>
-        public Task RefreshAsync(string key, CancellationToken token = default(CancellationToken))
-        {
-            return this.GetAsync(key, token);
         }
 
         /// <inheritdoc/>
@@ -215,6 +258,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 SessionKey = key,
                 Content = content,
                 TimeToLive = timeToLive,
+                IsSlidingExpiration = timeToLive.HasValue && options.SlidingExpiration.HasValue,
             };
         }
 
