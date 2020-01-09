@@ -6,9 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+## <a name="1.0.0-preview"/> 1.0.0-preview - 2019-01-09
+
+### Added
+
 - [#13](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/13) Bumping dependency to SDK 3.5.0 and adding Consistency readme
 - [#16](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/16) Do not update \_ts on reads for absolute expirations
+- [#18](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/18) Added YAML files for release and CSPROJ related changes
 
-## <a name="1.0.0"/> 1.0.0 - 2019-09-19
+## <a name="0.0.1"/> 0.0.1 - 2019-09-19
 
 - Initial code release.
