@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyName>Microsoft.Extensions.Caching.Cosmos.Tests</AssemblyName>
     <RootNamespace>Microsoft.Extensions.Caching.Cosmos.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
@@ -18,4 +22,9 @@
     <PackageReference Include="Moq" Version="4.12.0" />
   </ItemGroup>
 
+   <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>true</DelaySign>
+    <AssemblyOriginatorKeyFile>..\..\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
 </Project>
