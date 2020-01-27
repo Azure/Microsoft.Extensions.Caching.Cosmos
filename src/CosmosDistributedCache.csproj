@@ -45,4 +45,9 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="2.1.0" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>true</DelaySign>
+    <AssemblyOriginatorKeyFile>..\35MSSharedLib1024.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
 </Project>
