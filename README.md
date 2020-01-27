@@ -6,6 +6,10 @@ This repository contains an implementation of `IDistributedCache` using Azure Co
 
 There is also a [sample](./sample/Startup.cs) on how to instantiate the provider as part of ASP.NET Core's pipeline.
 
+## Installation
+
+This project is [available on Nuget](https://www.nuget.org/packages/Microsoft.Extensions.Caching.Cosmos) to install through any of the available package management tools.
+
 ## CosmosClient initialization
 
 The implementation provides two distinct options:
