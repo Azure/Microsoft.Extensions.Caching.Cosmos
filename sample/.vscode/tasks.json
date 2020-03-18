@@ -7,17 +7,34 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/AspNetCoreSessionState.csproj"
+                "${workspaceFolder}/AspNetCoreSessionState.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "build",
+            "label": "publish",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "build",
-                "${workspaceFolder}/AspNetCoreSessionState.csproj"
+                "publish",
+                "${workspaceFolder}/AspNetCoreSessionState.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "watch",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "watch",
+                "run",
+                "${workspaceFolder}/AspNetCoreSessionState.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
         }
