@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
         [JsonProperty("content")]
         public byte[] Content { get; set; }
 
-        [JsonProperty("ttl")]
+        [JsonProperty("ttl", NullValueHandling = NullValueHandling.Ignore)]
         public long? TimeToLive { get; set; }
 
         /// <summary>
