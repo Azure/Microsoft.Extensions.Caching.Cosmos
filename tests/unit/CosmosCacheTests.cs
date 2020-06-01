@@ -14,6 +14,7 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
     using Microsoft.Extensions.Caching.Distributed;
     using Microsoft.Extensions.Options;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     public class CosmosCacheTests
@@ -244,6 +245,46 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             }));
 
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => cache.SetAsync(existingSession.SessionKey, existingSession.Content, cacheOptions));
+        }
+
+        [Fact]
+        public async Task ValidatesNoExpirationUsesNullTtl()
+        {
+            long? ttl = null;
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            
+            CosmosCacheSession existingSession = new CosmosCacheSession();
+            existingSession.SessionKey = "key";
+            existingSession.Content = new byte[0];
+            Mock<ItemResponse<CosmosCacheSession>> mockedItemResponse = new Mock<ItemResponse<CosmosCacheSession>>();
+            Mock<CosmosClient> mockedClient = new Mock<CosmosClient>();
+            Mock<Container> mockedContainer = new Mock<Container>();
+            Mock<Database> mockedDatabase = new Mock<Database>();
+            Mock<ContainerResponse> mockedResponse = new Mock<ContainerResponse>();
+            mockedResponse.Setup(c => c.StatusCode).Returns(HttpStatusCode.OK);
+            mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
+            mockedContainer.Setup(c => c.UpsertItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item.SessionKey == existingSession.SessionKey && item.TimeToLive == ttl), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedItemResponse.Object);
+            mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
+            mockedClient.Setup(c => c.GetDatabase(It.IsAny<string>())).Returns(mockedDatabase.Object);
+            mockedClient.Setup(x => x.Endpoint).Returns(new Uri("http://localhost"));
+            CosmosCache cache = new CosmosCache(Options.Create(new CosmosCacheOptions(){
+                DatabaseName = "something",
+                ContainerName = "something",
+                CosmosClient = mockedClient.Object
+            }));
+
+            await cache.SetAsync(existingSession.SessionKey, existingSession.Content, cacheOptions);
+            mockedContainer.Verify(c => c.UpsertItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item.SessionKey == existingSession.SessionKey && item.TimeToLive == ttl), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public void ValidatesNullTtlDoesNotSerializeProperty()
+        {
+            CosmosCacheSession existingSession = new CosmosCacheSession();
+            existingSession.SessionKey = "key";
+            existingSession.Content = new byte[0];
+            string serialized = JsonConvert.SerializeObject(existingSession);
+            Assert.False(serialized.Contains("\"ttl\""), "Session without expiration should not include ttl property.");
         }
     }
 }
