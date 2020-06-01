@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+## <a name="1.0.0-preview2"/> 1.0.0-preview2 - 2020-06-01
+
+### Fixed
+
+- [#23](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/23) Fixed null ttl attribute value on no expiration
+
 ## <a name="1.0.0-preview"/> 1.0.0-preview - 2019-01-09
 
 ### Added
