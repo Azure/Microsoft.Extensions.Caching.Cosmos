@@ -315,7 +315,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 if (this.cosmosContainer == null)
                 {
-                    this.cosmosContainer = await this.CosmosContainerInitializeAsync();
+                    this.cosmosContainer = await this.CosmosContainerInitializeAsync().ConfigureAwait(false);
                 }
             }
             finally
