@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+## <a name="1.0.0-preview3"/> 1.0.0-preview3 - 2020-07-20
+
+### Fixed
+
+- [#25](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/25) Added ConfigureAwait to avoid locks when using sync APIs
+
 ## <a name="1.0.0-preview2"/> 1.0.0-preview2 - 2020-06-01
 
 ### Fixed
