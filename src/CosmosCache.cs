@@ -82,7 +82,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync();
+            await this.ConnectAsync().ConfigureAwait(false);
 
             ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
             try
@@ -141,7 +141,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync();
+            await this.ConnectAsync().ConfigureAwait(false);
 
             ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
             try
@@ -193,7 +193,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync();
+            await this.ConnectAsync().ConfigureAwait(false);
 
             await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
                 partitionKey: new PartitionKey(key),
@@ -230,7 +230,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(options));
             }
 
-            await this.ConnectAsync();
+            await this.ConnectAsync().ConfigureAwait(false);
 
             await this.cosmosContainer.UpsertItemAsync(
                 partitionKey: new PartitionKey(key),
@@ -315,7 +315,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 if (this.cosmosContainer == null)
                 {
-                    this.cosmosContainer = await this.CosmosContainerInitializeAsync();
+                    this.cosmosContainer = await this.CosmosContainerInitializeAsync().ConfigureAwait(false);
                 }
             }
             finally
