@@ -115,8 +115,11 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
-                    // Race condition on replace, we need to get the latest version of the item
-                    return await this.GetAsync(key, token).ConfigureAwait(false);
+                    if (this.options.RetrySlidingExpirationUpdates)
+                    {
+                        // Race condition on replace, we need to get the latest version of the item
+                        return await this.GetAsync(key, token).ConfigureAwait(false);
+                    }
                 }
             }
 

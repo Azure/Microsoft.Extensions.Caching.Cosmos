@@ -49,6 +49,14 @@ namespace Microsoft.Extensions.Caching.Cosmos
         public int? DefaultTimeToLiveInMs { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to retry failed updates after a Get to an item with sliding expiration.
+        /// </summary>
+        /// <remarks>
+        /// This can be useful for applications with high frequency reads on the same cache item
+        /// </remarks>
+        public bool RetrySlidingExpirationUpdates { get; set; } = true;
+
+        /// <summary>
         /// Gets the current options values.
         /// </summary>
         CosmosCacheOptions IOptions<CosmosCacheOptions>.Value
