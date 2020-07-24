@@ -140,6 +140,82 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
         }
 
         [Fact]
+        public async Task GetDoesNotRetryUpdateIfRetrySlidingExpirationUpdatesIsFalse()
+        {
+            string etag = "etag";
+            CosmosCacheSession existingSession = new CosmosCacheSession();
+            existingSession.SessionKey = "key";
+            existingSession.Content = new byte[0];
+            existingSession.IsSlidingExpiration = true;
+            Mock<ItemResponse<CosmosCacheSession>> mockedItemResponse = new Mock<ItemResponse<CosmosCacheSession>>();
+            Mock<CosmosClient> mockedClient = new Mock<CosmosClient>();
+            Mock<Container> mockedContainer = new Mock<Container>();
+            Mock<Database> mockedDatabase = new Mock<Database>();
+            Mock<ContainerResponse> mockedResponse = new Mock<ContainerResponse>();
+            mockedItemResponse.Setup(c => c.Resource).Returns(existingSession);
+            mockedItemResponse.Setup(c => c.ETag).Returns(etag);
+            mockedResponse.Setup(c => c.StatusCode).Returns(HttpStatusCode.OK);
+            mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
+            mockedContainer.Setup(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedItemResponse.Object);
+            mockedContainer.Setup(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(new CosmosException("test", HttpStatusCode.PreconditionFailed, 0, "", 0));;
+            mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
+            mockedClient.Setup(c => c.GetDatabase(It.IsAny<string>())).Returns(mockedDatabase.Object);
+            mockedClient.Setup(x => x.Endpoint).Returns(new Uri("http://localhost"));
+            CosmosCache cache = new CosmosCache(Options.Create(new CosmosCacheOptions(){
+                DatabaseName = "something",
+                ContainerName = "something",
+                CreateIfNotExists = true,
+                CosmosClient = mockedClient.Object,
+                RetrySlidingExpirationUpdates = false
+            }));
+
+            Assert.Same(existingSession.Content, await cache.GetAsync("key"));
+            // Checks for Db existence due to CreateIfNotExists
+            mockedClient.Verify(c => c.CreateDatabaseIfNotExistsAsync(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockedContainer.Verify(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockedContainer.Verify(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetDoesRetryUpdateIfRetrySlidingExpirationUpdatesIsTrue()
+        {
+            string etag = "etag";
+            CosmosCacheSession existingSession = new CosmosCacheSession();
+            existingSession.SessionKey = "key";
+            existingSession.Content = new byte[0];
+            existingSession.IsSlidingExpiration = true;
+            Mock<ItemResponse<CosmosCacheSession>> mockedItemResponse = new Mock<ItemResponse<CosmosCacheSession>>();
+            Mock<CosmosClient> mockedClient = new Mock<CosmosClient>();
+            Mock<Container> mockedContainer = new Mock<Container>();
+            Mock<Database> mockedDatabase = new Mock<Database>();
+            Mock<ContainerResponse> mockedResponse = new Mock<ContainerResponse>();
+            mockedItemResponse.Setup(c => c.Resource).Returns(existingSession);
+            mockedItemResponse.Setup(c => c.ETag).Returns(etag);
+            mockedResponse.Setup(c => c.StatusCode).Returns(HttpStatusCode.OK);
+            mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
+            mockedContainer.Setup(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedItemResponse.Object);
+            mockedContainer.SetupSequence(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new CosmosException("test", HttpStatusCode.PreconditionFailed, 0, "", 0))
+                .ReturnsAsync(mockedItemResponse.Object);
+            mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
+            mockedClient.Setup(c => c.GetDatabase(It.IsAny<string>())).Returns(mockedDatabase.Object);
+            mockedClient.Setup(x => x.Endpoint).Returns(new Uri("http://localhost"));
+            CosmosCache cache = new CosmosCache(Options.Create(new CosmosCacheOptions(){
+                DatabaseName = "something",
+                ContainerName = "something",
+                CreateIfNotExists = true,
+                CosmosClient = mockedClient.Object,
+                RetrySlidingExpirationUpdates = true
+            }));
+
+            Assert.Same(existingSession.Content, await cache.GetAsync("key"));
+            // Checks for Db existence due to CreateIfNotExists
+            mockedClient.Verify(c => c.CreateDatabaseIfNotExistsAsync(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockedContainer.Verify(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            mockedContainer.Verify(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        }
+
+        [Fact]
         public async Task GetReturnsNullIfKeyDoesNotExist()
         {
             Mock<CosmosClient> mockedClient = new Mock<CosmosClient>();
