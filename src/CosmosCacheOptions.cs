@@ -52,7 +52,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// Gets or sets a value indicating whether to retry failed updates after a Get to an item with sliding expiration.
         /// </summary>
         /// <remarks>
-        /// This can be useful for applications with high frequency reads on the same cache item.
+        /// <para>This can be useful for applications with high frequency reads on the same cache item that does not change.</para>
+        /// <para>Turning this on for cache items that change constantly can lead to dirty reads. </para>
         /// </remarks>
         public bool RetrySlidingExpirationUpdates { get; set; } = true;
 
