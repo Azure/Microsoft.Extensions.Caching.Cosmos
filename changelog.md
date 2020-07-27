@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+## <a name="1.0.0-preview4"/> 1.0.0-preview4 - 2020-07-27
+
+### Fixed
+
+- [#28](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/28) Added CosmosCacheOptions.RetrySlidingExpirationUpdates to avoid bottlenecks on high concurrent read operations
+
 ## <a name="1.0.0-preview3"/> 1.0.0-preview3 - 2020-07-20
 
 ### Fixed
