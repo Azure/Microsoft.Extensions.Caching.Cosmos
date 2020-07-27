@@ -55,7 +55,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// <para>This can be useful for applications with high frequency reads on the same cache item that does not change.</para>
         /// <para>Turning this feature off for cache items that change constantly can lead to dirty reads. </para>
         /// </remarks>
-        /// <value>Default value is true</value>
+        /// <value>Default value is true.</value>
         public bool RetrySlidingExpirationUpdates { get; set; } = true;
 
         /// <summary>
