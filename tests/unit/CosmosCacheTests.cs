@@ -352,15 +352,5 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             await cache.SetAsync(existingSession.SessionKey, existingSession.Content, cacheOptions);
             mockedContainer.Verify(c => c.UpsertItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item.SessionKey == existingSession.SessionKey && item.TimeToLive == ttl), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
         }
-
-        [Fact]
-        public void ValidatesNullTtlDoesNotSerializeProperty()
-        {
-            CosmosCacheSession existingSession = new CosmosCacheSession();
-            existingSession.SessionKey = "key";
-            existingSession.Content = new byte[0];
-            string serialized = JsonConvert.SerializeObject(existingSession);
-            Assert.False(serialized.Contains("\"ttl\""), "Session without expiration should not include ttl property.");
-        }
     }
 }
