@@ -7,15 +7,13 @@ namespace Microsoft.Extensions.Caching.Cosmos
     using Microsoft.Extensions.Caching.Distributed;
     using Newtonsoft.Json;
 
+    [JsonConverter(typeof(CosmosCacheSessionConverter))]
     internal class CosmosCacheSession
     {
-        [JsonProperty("id")]
         public string SessionKey { get; set; }
 
-        [JsonProperty("content")]
         public byte[] Content { get; set; }
 
-        [JsonProperty("ttl", NullValueHandling = NullValueHandling.Ignore)]
         public long? TimeToLive { get; set; }
 
         /// <summary>
@@ -24,7 +22,6 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// false if <see cref="DistributedCacheEntryOptions.AbsoluteExpiration"/> or <see cref="DistributedCacheEntryOptions.AbsoluteExpirationRelativeToNow"/> was set and used for the TTL;
         /// otherwise null.
         /// </summary>
-        [JsonProperty("isSlidingExpiration")]
         public bool? IsSlidingExpiration { get; set; }
     }
 }
