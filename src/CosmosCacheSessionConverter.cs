@@ -10,6 +10,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
 
     internal class CosmosCacheSessionConverter : JsonConverter
     {
+        private static readonly string ContentAttributeName = "content";
+        private static readonly string TtlAttributeName = "ttl";
+        private static readonly string SlidingAttributeName = "isSlidingExpiration";
+        private static readonly string IdAttributeName = "id";
+        private static readonly string PkAttributeName = "partitionKeyDefinition";
+
         public override bool CanConvert(Type objectType) => objectType == typeof(CosmosCacheSession);
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -23,32 +29,37 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 throw new JsonReaderException();
             }
-            
+
             JObject jObject = JObject.Load(reader);
             CosmosCacheSession cosmosCacheSession = new CosmosCacheSession();
 
-            if (!jObject.TryGetValue("id", out JToken idJToken))
+            if (!jObject.TryGetValue(CosmosCacheSessionConverter.IdAttributeName, out JToken idJToken))
             {
                 throw new JsonReaderException("Missing id on Cosmos DB session item.");
             }
 
             cosmosCacheSession.SessionKey = idJToken.Value<string>();
 
-            if (!jObject.TryGetValue("content", out JToken contentJToken))
+            if (!jObject.TryGetValue(CosmosCacheSessionConverter.ContentAttributeName, out JToken contentJToken))
             {
                 throw new JsonReaderException("Missing id on Cosmos DB session item.");
             }
 
-            cosmosCacheSession.Content = contentJToken.Value<byte[]>();
+            cosmosCacheSession.Content = Convert.FromBase64String(contentJToken.Value<string>());
 
-            if (jObject.TryGetValue("ttl", out JToken ttlJToken))
+            if (jObject.TryGetValue(CosmosCacheSessionConverter.TtlAttributeName, out JToken ttlJToken))
             {
                 cosmosCacheSession.TimeToLive = ttlJToken.Value<long>();
             }
 
-            if (jObject.TryGetValue("isSlidingExpiration", out JToken ttlSlidingExpiration))
+            if (jObject.TryGetValue(CosmosCacheSessionConverter.SlidingAttributeName, out JToken ttlSlidingExpirationJToken))
             {
-                cosmosCacheSession.IsSlidingExpiration = ttlSlidingExpiration.Value<bool>();
+                cosmosCacheSession.IsSlidingExpiration = ttlSlidingExpirationJToken.Value<bool>();
+            }
+
+            if (jObject.TryGetValue(CosmosCacheSessionConverter.PkAttributeName, out JToken pkDefinitionJToken))
+            {
+                cosmosCacheSession.PartitionKeyDefinition = pkDefinitionJToken.Value<string>();
             }
 
             return cosmosCacheSession;
@@ -57,23 +68,35 @@ namespace Microsoft.Extensions.Caching.Cosmos
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             CosmosCacheSession cosmosCacheSession = value as CosmosCacheSession;
-            writer.WritePropertyName("id");
+
+            writer.WriteStartObject();
+
+            writer.WritePropertyName(CosmosCacheSessionConverter.IdAttributeName);
             writer.WriteValue(cosmosCacheSession.SessionKey);
 
-            writer.WritePropertyName("content");
-            writer.WriteValue(cosmosCacheSession.Content);
+            writer.WritePropertyName(CosmosCacheSessionConverter.ContentAttributeName);
+            writer.WriteValue(Convert.ToBase64String(cosmosCacheSession.Content));
 
             if (cosmosCacheSession.TimeToLive.HasValue)
             {
-                writer.WritePropertyName("ttl");
+                writer.WritePropertyName(CosmosCacheSessionConverter.TtlAttributeName);
                 writer.WriteValue(cosmosCacheSession.TimeToLive.Value);
             }
 
             if (cosmosCacheSession.IsSlidingExpiration.HasValue)
             {
-                writer.WritePropertyName("isSlidingExpiration");
+                writer.WritePropertyName(CosmosCacheSessionConverter.SlidingAttributeName);
                 writer.WriteValue(cosmosCacheSession.IsSlidingExpiration.Value);
             }
+
+            if (!string.IsNullOrWhiteSpace(cosmosCacheSession.PartitionKeyDefinition)
+                && !CosmosCacheSessionConverter.IdAttributeName.Equals(cosmosCacheSession.PartitionKeyDefinition, StringComparison.OrdinalIgnoreCase))
+            {
+                writer.WritePropertyName(cosmosCacheSession.PartitionKeyDefinition);
+                writer.WriteValue(cosmosCacheSession.SessionKey);
+            }
+
+            writer.WriteEndObject();
         }
     }
 }

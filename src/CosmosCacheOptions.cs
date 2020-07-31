@@ -40,7 +40,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
         public bool CreateIfNotExists { get; set; } = false;
 
         /// <summary>
-        /// Gets or sets a value indicating the name of the property used as Partition Key on the Container. 
+        /// Gets or sets a value indicating the name of the property used as Partition Key on the Container.
         /// </summary>
         /// <remarks>
         /// If <see cref="CreateIfNotExists"/> is true, it will be used to define the Partition Key of the created Container.

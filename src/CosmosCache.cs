@@ -240,21 +240,19 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 item: CosmosCache.BuildCosmosCacheSession(
                     key,
                     value,
-                    options),
+                    options,
+                    this.options),
                 requestOptions: null,
                 cancellationToken: token).ConfigureAwait(false);
         }
 
-        private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, DateTimeOffset? creationTime = null)
+        private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, CosmosCacheOptions cosmosCacheOptions)
         {
-            if (!creationTime.HasValue)
-            {
-                creationTime = DateTimeOffset.UtcNow;
-            }
+            DateTimeOffset creationTime = DateTimeOffset.UtcNow;
 
-            DateTimeOffset? absoluteExpiration = CosmosCache.GetAbsoluteExpiration(creationTime.Value, options);
+            DateTimeOffset? absoluteExpiration = CosmosCache.GetAbsoluteExpiration(creationTime, options);
 
-            long? timeToLive = CosmosCache.GetExpirationInSeconds(creationTime.Value, absoluteExpiration, options);
+            long? timeToLive = CosmosCache.GetExpirationInSeconds(creationTime, absoluteExpiration, options);
 
             return new CosmosCacheSession()
             {
@@ -262,6 +260,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 Content = content,
                 TimeToLive = timeToLive,
                 IsSlidingExpiration = timeToLive.HasValue && options.SlidingExpiration.HasValue,
+                PartitionKeyDefinition = cosmosCacheOptions.ContainerPartitionKeyPath,
             };
         }
 
