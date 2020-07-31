@@ -345,7 +345,13 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
                     // Container is optimized as Key-Value store excluding all properties
-                    await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, CosmosCache.ContainerPartitionKeyPath)
+                    string partitionKeyDefinition = CosmosCache.ContainerPartitionKeyPath;
+                    if (!string.IsNullOrWhiteSpace(this.options.ContainerPartitionKeyPath))
+                    {
+                        partitionKeyDefinition = $"/{this.options.ContainerPartitionKeyPath}";
+                    }
+
+                    await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, partitionKeyDefinition)
                         .WithDefaultTimeToLive(defaultTimeToLive)
                         .WithIndexingPolicy()
                             .WithIndexingMode(IndexingMode.Consistent)
