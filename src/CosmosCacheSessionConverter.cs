@@ -59,7 +59,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
 
             if (jObject.TryGetValue(CosmosCacheSessionConverter.PkAttributeName, out JToken pkDefinitionJToken))
             {
-                cosmosCacheSession.PartitionKeyDefinition = pkDefinitionJToken.Value<string>();
+                cosmosCacheSession.PartitionKeyAttribute = pkDefinitionJToken.Value<string>();
             }
 
             return cosmosCacheSession;
@@ -89,10 +89,10 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 writer.WriteValue(cosmosCacheSession.IsSlidingExpiration.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(cosmosCacheSession.PartitionKeyDefinition)
-                && !CosmosCacheSessionConverter.IdAttributeName.Equals(cosmosCacheSession.PartitionKeyDefinition, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(cosmosCacheSession.PartitionKeyAttribute)
+                && !CosmosCacheSessionConverter.IdAttributeName.Equals(cosmosCacheSession.PartitionKeyAttribute, StringComparison.OrdinalIgnoreCase))
             {
-                writer.WritePropertyName(cosmosCacheSession.PartitionKeyDefinition);
+                writer.WritePropertyName(cosmosCacheSession.PartitionKeyAttribute);
                 writer.WriteValue(cosmosCacheSession.SessionKey);
             }
 

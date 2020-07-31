@@ -24,6 +24,6 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// </summary>
         public bool? IsSlidingExpiration { get; set; }
 
-        public string PartitionKeyDefinition { get; set; }
+        public string PartitionKeyAttribute { get; set; }
     }
 }

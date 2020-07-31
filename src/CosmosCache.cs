@@ -103,6 +103,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 try
                 {
+                    cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
                     await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
                             id: key,
@@ -260,7 +261,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 Content = content,
                 TimeToLive = timeToLive,
                 IsSlidingExpiration = timeToLive.HasValue && options.SlidingExpiration.HasValue,
-                PartitionKeyDefinition = cosmosCacheOptions.ContainerPartitionKeyPath,
+                PartitionKeyAttribute = cosmosCacheOptions.ContainerPartitionKeyAttribute,
             };
         }
 
@@ -345,9 +346,9 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 {
                     // Container is optimized as Key-Value store excluding all properties
                     string partitionKeyDefinition = CosmosCache.ContainerPartitionKeyPath;
-                    if (!string.IsNullOrWhiteSpace(this.options.ContainerPartitionKeyPath))
+                    if (!string.IsNullOrWhiteSpace(this.options.ContainerPartitionKeyAttribute))
                     {
-                        partitionKeyDefinition = $"/{this.options.ContainerPartitionKeyPath}";
+                        partitionKeyDefinition = $"/{this.options.ContainerPartitionKeyAttribute}";
                     }
 
                     await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, partitionKeyDefinition)
