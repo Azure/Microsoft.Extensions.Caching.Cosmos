@@ -36,7 +36,17 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// <summary>
         /// Gets or sets a value indicating whether initialization it will check for the Container existence and create it if it doesn't exist using <see cref="ContainerThroughput"/> as provisioned throughput and <see cref="DefaultTimeToLiveInMs"/>.
         /// </summary>
-        public bool CreateIfNotExists { get; set; }
+        /// <value>Default value is false.</value>
+        public bool CreateIfNotExists { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating the name of the property used as Partition Key on the Container.
+        /// </summary>
+        /// <remarks>
+        /// If <see cref="CreateIfNotExists"/> is true, it will be used to define the Partition Key of the created Container.
+        /// </remarks>
+        /// <value>Default value is "id".</value>
+        public string ContainerPartitionKeyAttribute { get; set; }
 
         /// <summary>
         /// Gets or sets the provisioned throughput for the Container in case <see cref="CreateIfNotExists"/> is true and the Container does not exist.

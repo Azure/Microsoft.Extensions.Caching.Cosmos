@@ -103,6 +103,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 try
                 {
+                    cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
                     await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
                             id: key,
@@ -240,21 +241,19 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 item: CosmosCache.BuildCosmosCacheSession(
                     key,
                     value,
-                    options),
+                    options,
+                    this.options),
                 requestOptions: null,
                 cancellationToken: token).ConfigureAwait(false);
         }
 
-        private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, DateTimeOffset? creationTime = null)
+        private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, CosmosCacheOptions cosmosCacheOptions)
         {
-            if (!creationTime.HasValue)
-            {
-                creationTime = DateTimeOffset.UtcNow;
-            }
+            DateTimeOffset creationTime = DateTimeOffset.UtcNow;
 
-            DateTimeOffset? absoluteExpiration = CosmosCache.GetAbsoluteExpiration(creationTime.Value, options);
+            DateTimeOffset? absoluteExpiration = CosmosCache.GetAbsoluteExpiration(creationTime, options);
 
-            long? timeToLive = CosmosCache.GetExpirationInSeconds(creationTime.Value, absoluteExpiration, options);
+            long? timeToLive = CosmosCache.GetExpirationInSeconds(creationTime, absoluteExpiration, options);
 
             return new CosmosCacheSession()
             {
@@ -262,6 +261,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 Content = content,
                 TimeToLive = timeToLive,
                 IsSlidingExpiration = timeToLive.HasValue && options.SlidingExpiration.HasValue,
+                PartitionKeyAttribute = cosmosCacheOptions.ContainerPartitionKeyAttribute,
             };
         }
 
@@ -345,7 +345,13 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
                     // Container is optimized as Key-Value store excluding all properties
-                    await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, CosmosCache.ContainerPartitionKeyPath)
+                    string partitionKeyDefinition = CosmosCache.ContainerPartitionKeyPath;
+                    if (!string.IsNullOrWhiteSpace(this.options.ContainerPartitionKeyAttribute))
+                    {
+                        partitionKeyDefinition = $"/{this.options.ContainerPartitionKeyAttribute}";
+                    }
+
+                    await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, partitionKeyDefinition)
                         .WithDefaultTimeToLive(defaultTimeToLive)
                         .WithIndexingPolicy()
                             .WithIndexingMode(IndexingMode.Consistent)
