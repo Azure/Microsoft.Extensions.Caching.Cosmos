@@ -4,9 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.0.0-preview5"/> 1.0.0-preview5 - 2020-10-13
+
 ### Added
 
 - [#31](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/31) Added support for Gremlin accounts
+- [#33](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/33) Added support for chaining SlidingExpiration and AbsoluteExpiration
 
 ## <a name="1.0.0-preview4"/> 1.0.0-preview4 - 2020-07-27
 
