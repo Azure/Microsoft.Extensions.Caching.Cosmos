@@ -13,6 +13,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
         private static readonly string ContentAttributeName = "content";
         private static readonly string TtlAttributeName = "ttl";
         private static readonly string SlidingAttributeName = "isSlidingExpiration";
+        private static readonly string AbsoluteSlidingExpirationAttributeName = "absoluteSlidingExpiration";
         private static readonly string IdAttributeName = "id";
         private static readonly string PkAttributeName = "partitionKeyDefinition";
 
@@ -57,6 +58,11 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 cosmosCacheSession.IsSlidingExpiration = ttlSlidingExpirationJToken.Value<bool>();
             }
 
+            if (jObject.TryGetValue(CosmosCacheSessionConverter.AbsoluteSlidingExpirationAttributeName, out JToken absoluteSlidingExpirationJToken))
+            {
+                cosmosCacheSession.AbsoluteSlidingExpiration = absoluteSlidingExpirationJToken.Value<long>();
+            }
+
             if (jObject.TryGetValue(CosmosCacheSessionConverter.PkAttributeName, out JToken pkDefinitionJToken))
             {
                 cosmosCacheSession.PartitionKeyAttribute = pkDefinitionJToken.Value<string>();
@@ -87,6 +93,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 writer.WritePropertyName(CosmosCacheSessionConverter.SlidingAttributeName);
                 writer.WriteValue(cosmosCacheSession.IsSlidingExpiration.Value);
+            }
+
+            if (cosmosCacheSession.AbsoluteSlidingExpiration.HasValue)
+            {
+                writer.WritePropertyName(CosmosCacheSessionConverter.AbsoluteSlidingExpirationAttributeName);
+                writer.WriteValue(cosmosCacheSession.AbsoluteSlidingExpiration.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(cosmosCacheSession.PartitionKeyAttribute)

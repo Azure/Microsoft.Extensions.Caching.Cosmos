@@ -272,6 +272,46 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             Assert.Null(await cache.GetAsync(sessionId));
         }
 
+        [Fact]
+        public async Task SlidingAndAbsoluteExpiration()
+        {
+            const string sessionId = "sessionId";
+            const int ttl = 10;
+            const int absoluteTtl = 15;
+            const int throughput = 400;
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            cacheOptions.AbsoluteExpiration = DateTimeOffset.UtcNow.AddSeconds(absoluteTtl);
+            byte[] data = new byte[4] { 1, 2, 3, 4 };
+            await cache.SetAsync(sessionId, data, cacheOptions);
+
+            // Verify that container has been created
+
+            CosmosCacheSession storedSession = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+            Assert.Equal(ttl, storedSession.TimeToLive);
+
+            await Task.Delay(8000); // Wait
+
+            await cache.GetAsync(sessionId);
+
+            storedSession = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+
+            // Since the absolute expiration is closer than the sliding value, the TTL should be lower
+            Assert.True(storedSession.TimeToLive < ttl);
+        }
+
         private class CosmosCacheSession
         {
             [JsonProperty("id")]

@@ -103,6 +103,24 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 try
                 {
+                    if (cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault() > 0)
+                    {
+                        long ttl = cosmosCacheSessionResponse.Resource.TimeToLive.Value;
+                        DateTimeOffset absoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault());
+                        if (absoluteExpiration < DateTimeOffset.UtcNow)
+                        {
+                            cosmosCacheSessionResponse.Resource.TimeToLive = 0;
+                        }
+                        else
+                        {
+                            double pendingSeconds = (absoluteExpiration - DateTimeOffset.UtcNow).TotalSeconds;
+                            if (pendingSeconds < ttl)
+                            {
+                                cosmosCacheSessionResponse.Resource.TimeToLive = (long)pendingSeconds;
+                            }
+                        }
+                    }
+
                     cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
                     await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
@@ -161,21 +179,25 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 return;
             }
 
-            try
+            if (cosmosCacheSessionResponse.Resource.IsSlidingExpiration.GetValueOrDefault())
             {
-                await this.cosmosContainer.ReplaceItemAsync(
-                        partitionKey: new PartitionKey(key),
-                        id: key,
-                        item: cosmosCacheSessionResponse.Resource,
-                        requestOptions: new ItemRequestOptions()
-                        {
-                            IfMatchEtag = cosmosCacheSessionResponse.ETag,
-                        },
-                        cancellationToken: token).ConfigureAwait(false);
-            }
-            catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
-            {
-                // Race condition on replace, we do not need to refresh it
+                try
+                {
+                    cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
+                    await this.cosmosContainer.ReplaceItemAsync(
+                            partitionKey: new PartitionKey(key),
+                            id: key,
+                            item: cosmosCacheSessionResponse.Resource,
+                            requestOptions: new ItemRequestOptions()
+                            {
+                                IfMatchEtag = cosmosCacheSessionResponse.ETag,
+                            },
+                            cancellationToken: token).ConfigureAwait(false);
+                }
+                catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
+                {
+                    // Race condition on replace, we need do not need to refresh it
+                }
             }
         }
 
@@ -255,12 +277,22 @@ namespace Microsoft.Extensions.Caching.Cosmos
 
             long? timeToLive = CosmosCache.GetExpirationInSeconds(creationTime, absoluteExpiration, options);
 
+            bool hasSlidingExpiration = timeToLive.HasValue && options.SlidingExpiration.HasValue;
+
+            long? absoluteSlidingExpiration = null;
+
+            if (hasSlidingExpiration && absoluteExpiration.HasValue)
+            {
+                absoluteSlidingExpiration = absoluteExpiration.Value.ToUnixTimeSeconds();
+            }
+
             return new CosmosCacheSession()
             {
                 SessionKey = key,
                 Content = content,
                 TimeToLive = timeToLive,
-                IsSlidingExpiration = timeToLive.HasValue && options.SlidingExpiration.HasValue,
+                IsSlidingExpiration = hasSlidingExpiration,
+                AbsoluteSlidingExpiration = absoluteSlidingExpiration,
                 PartitionKeyAttribute = cosmosCacheOptions.ContainerPartitionKeyAttribute,
             };
         }
@@ -295,7 +327,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     "The absolute expiration value must be in the future.");
             }
 
-            var absoluteExpiration = options.AbsoluteExpiration;
+            DateTimeOffset? absoluteExpiration = options.AbsoluteExpiration;
             if (options.AbsoluteExpirationRelativeToNow.HasValue)
             {
                 absoluteExpiration = creationTime + options.AbsoluteExpirationRelativeToNow;

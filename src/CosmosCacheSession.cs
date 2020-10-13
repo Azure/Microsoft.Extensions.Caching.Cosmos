@@ -17,12 +17,15 @@ namespace Microsoft.Extensions.Caching.Cosmos
         public long? TimeToLive { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the <see cref="TimeToLive"/> is sliding or absolute.<br/>
-        /// True if <see cref="DistributedCacheEntryOptions.SlidingExpiration"/> was set and used for the TTL,
-        /// false if <see cref="DistributedCacheEntryOptions.AbsoluteExpiration"/> or <see cref="DistributedCacheEntryOptions.AbsoluteExpirationRelativeToNow"/> was set and used for the TTL;
-        /// otherwise null.
+        /// Gets or sets a value indicating whether the <see cref="TimeToLive"/> was generated with sliding expiration active.<br/>
+        /// True if <see cref="DistributedCacheEntryOptions.SlidingExpiration"/> was set.
         /// </summary>
         public bool? IsSlidingExpiration { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the absolute expiration of an item to be used when the item had <see cref="DistributedCacheEntryOptions.SlidingExpiration"/> and <see cref="DistributedCacheEntryOptions.AbsoluteExpiration"/> or <see cref="DistributedCacheEntryOptions.AbsoluteExpirationRelativeToNow"/>.
+        /// </summary>
+        public long? AbsoluteSlidingExpiration { get; set; }
 
         public string PartitionKeyAttribute { get; set; }
     }
