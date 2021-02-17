@@ -220,12 +220,18 @@ namespace Microsoft.Extensions.Caching.Cosmos
             }
 
             await this.ConnectAsync().ConfigureAwait(false);
-
-            await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
-                partitionKey: new PartitionKey(key),
-                id: key,
-                requestOptions: null,
-                cancellationToken: token).ConfigureAwait(false);
+            try
+            {
+                await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
+                    partitionKey: new PartitionKey(key),
+                    id: key,
+                    requestOptions: null,
+                    cancellationToken: token).ConfigureAwait(false);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                return;
+            }
         }
 
         /// <inheritdoc/>
