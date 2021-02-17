@@ -230,7 +230,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                return;
+                // do nothing
             }
         }
 
