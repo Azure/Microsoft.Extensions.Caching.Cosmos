@@ -49,7 +49,7 @@ The provider stores the state in a container within a database, both parameters 
 ### Cosmos account consistency
 
 Consistency in a distributed cache is important, especially when applications are deployed across multiple instances and user requests can be distributed across all of them. 
-Azure Cosmos DB has [multiple options](https://docs.microsoft.com/azure/cosmos-db/consistency-levels) when it comes to configuring consistency. When using it as a districuted cache provider, the following consistency levels are recommended:
+Azure Cosmos DB has [multiple options](https://docs.microsoft.com/azure/cosmos-db/consistency-levels) when it comes to configuring consistency. When using it as a distributed cache provider, the following consistency levels are recommended:
 
 * Session: Recommended only if the ASP.NET application will be using **Application Request Routing Affinity**. This is enabled by default when hosting your ASP.NET application in [Azure App Service](https://docs.microsoft.com/azure/app-service/configure-common#configure-general-settings).
 * Bounded staleness
