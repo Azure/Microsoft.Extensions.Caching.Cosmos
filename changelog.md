@@ -4,6 +4,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.0.0-preview6"/> 1.0.0-preview6 - 2021-03-08
+
+### Added
+
+- [#41](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/41) EnableContentResponseOnWrite to reduce network usage when not needed
+
+### Fixed
+
+- [#38](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/38) Fixed Resource Not Found when removing an entry that does not exist
+
 ## <a name="1.0.0-preview5"/> 1.0.0-preview5 - 2020-10-13
 
 ### Added
