@@ -129,6 +129,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                             requestOptions: new ItemRequestOptions()
                             {
                                 IfMatchEtag = cosmosCacheSessionResponse.ETag,
+                                EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
                 }
@@ -191,6 +192,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                             requestOptions: new ItemRequestOptions()
                             {
                                 IfMatchEtag = cosmosCacheSessionResponse.ETag,
+                                EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
                 }
@@ -225,7 +227,10 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
                     partitionKey: new PartitionKey(key),
                     id: key,
-                    requestOptions: null,
+                    requestOptions: new ItemRequestOptions()
+                    {
+                        EnableContentResponseOnWrite = false,
+                    },
                     cancellationToken: token).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -271,7 +276,10 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     value,
                     options,
                     this.options),
-                requestOptions: null,
+                requestOptions: new ItemRequestOptions()
+                {
+                    EnableContentResponseOnWrite = false,
+                },
                 cancellationToken: token).ConfigureAwait(false);
         }
 
