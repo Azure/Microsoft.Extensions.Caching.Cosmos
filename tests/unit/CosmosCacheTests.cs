@@ -343,6 +343,27 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             await cache.RemoveAsync("key");
             mockedContainer.Verify(c => c.DeleteItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
         }
+        
+        [Fact]
+        public async Task RemoveAsyncNotExistItem()
+        {
+            var mockedClient = new Mock<CosmosClient>();
+            var mockedContainer = new Mock<Container>();
+            mockedContainer.Setup(c => c.DeleteItemAsync<CosmosCacheSession>("not-exist-key", It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new CosmosException("test remove not exist", HttpStatusCode.NotFound, 0, "", 0))
+                .Verifiable();
+            mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object).Verifiable();
+            CosmosCache cache = new CosmosCache(Options.Create(new CosmosCacheOptions(){
+                DatabaseName = "something",
+                ContainerName = "something",
+                CosmosClient = mockedClient.Object
+            }));
+
+            await cache.RemoveAsync("not-exist-key");
+            mockedContainer.Verify(c => c.DeleteItemAsync<CosmosCacheSession>("not-exist-key", It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+            mockedClient.VerifyAll();
+            mockedContainer.VerifyAll();
+        }
 
         [Fact]
         public async Task SetAsyncCallsUpsert()
