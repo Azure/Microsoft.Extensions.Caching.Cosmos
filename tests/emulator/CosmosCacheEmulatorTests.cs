@@ -197,6 +197,35 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
         }
 
         [Fact]
+        public async Task RemoveSessionData()
+        {
+            const string sessionId = "sessionId";
+            const int ttl = 1400;
+            const int throughput = 2000;
+            byte[] data = new byte[1] { 1 };
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            await cache.SetAsync(sessionId, data, cacheOptions);
+
+            await cache.RemoveAsync(sessionId);
+
+            CosmosException exception = await Assert.ThrowsAsync<CosmosException>(() => this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<dynamic>(sessionId, new PartitionKey(sessionId)));
+            Assert.Equal(HttpStatusCode.NotFound, exception.StatusCode);
+        }
+
+        [Fact]
         public async Task GetSessionData_CustomPartitionKey()
         {
             const string sessionId = "sessionId";
@@ -225,6 +254,60 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
         }
 
         [Fact]
+        public async Task RemoveSessionData_CustomPartitionKey()
+        {
+            const string sessionId = "sessionId";
+            const int ttl = 1400;
+            const int throughput = 2000;
+            byte[] data = new byte[1] { 1 };
+            const string partitionKeyAttribute = "notTheId";
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder,
+                ContainerPartitionKeyAttribute = partitionKeyAttribute,
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            await cache.SetAsync(sessionId, data, cacheOptions);
+
+            await cache.RemoveAsync(sessionId);
+
+            CosmosException exception = await Assert.ThrowsAsync<CosmosException>(() => this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<dynamic>(sessionId, new PartitionKey(sessionId)));
+            Assert.Equal(HttpStatusCode.NotFound, exception.StatusCode);
+        }
+
+        [Fact]
+        public async Task RemoveSessionData_WhenNotExists()
+        {
+            const string sessionId = "sessionId";
+            const int ttl = 1400;
+            const int throughput = 2000;
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            await cache.RemoveAsync(sessionId);
+        }
+
+        [Fact]
         public async Task GetSessionData_WhenNotExists()
         {
             const string sessionId = "sessionId";
@@ -245,6 +328,31 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
             cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
             Assert.Null(await cache.GetAsync(sessionId));
+        }
+
+        [Fact]
+        public async Task RemoveSessionData_WhenNotExists_CustomPartitionKey()
+        {
+            const string sessionId = "sessionId";
+            const int ttl = 1400;
+            const int throughput = 2000;
+            const string partitionKeyAttribute = "notTheId";
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder,
+                ContainerPartitionKeyAttribute = partitionKeyAttribute,
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            await cache.RemoveAsync(sessionId);
         }
 
         [Fact]
