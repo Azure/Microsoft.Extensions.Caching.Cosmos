@@ -396,7 +396,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
             this.cosmosClient = this.GetClientInstance();
             if (this.options.CreateIfNotExists)
             {
-                await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.options.DatabaseName).ConfigureAwait(false);
+                DatabaseResponse databaseResponse = await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.options.DatabaseName).ConfigureAwait(false);
+                this.options.DiagnosticsHandler?.Invoke(databaseResponse.Diagnostics);
 
                 int defaultTimeToLive = this.options.DefaultTimeToLiveInMs.HasValue
                     && this.options.DefaultTimeToLiveInMs.Value > 0 ? this.options.DefaultTimeToLiveInMs.Value : CosmosCache.DefaultTimeToLive;
@@ -404,6 +405,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 try
                 {
                     ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
+                    this.options.DiagnosticsHandler?.Invoke(existingContainer.Diagnostics);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -432,9 +434,11 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 try
                 {
                     ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
+                    this.options.DiagnosticsHandler?.Invoke(existingContainer.Diagnostics);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
+                    this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                     throw new InvalidOperationException($"Cannot find an existing container named {this.options.ContainerName} within database {this.options.DatabaseName}");
                 }
             }
