@@ -92,9 +92,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     id: key,
                     requestOptions: null,
                     cancellationToken: token).ConfigureAwait(false);
+
+                this.options.DiagnosticsHandler?.Invoke(cosmosCacheSessionResponse.Diagnostics);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
+                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 return null;
             }
 
@@ -122,7 +125,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     }
 
                     cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
-                    await this.cosmosContainer.ReplaceItemAsync(
+                    ItemResponse<CosmosCacheSession> replaceCacheSessionResponse = await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
                             id: key,
                             item: cosmosCacheSessionResponse.Resource,
@@ -132,9 +135,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
+
+                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
+                    this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                     if (this.options.RetrySlidingExpirationUpdates)
                     {
                         // Race condition on replace, we need to get the latest version of the item
@@ -174,9 +180,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     id: key,
                     requestOptions: null,
                     cancellationToken: token).ConfigureAwait(false);
+
+                this.options.DiagnosticsHandler?.Invoke(cosmosCacheSessionResponse.Diagnostics);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
+                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 return;
             }
 
@@ -185,7 +194,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 try
                 {
                     cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
-                    await this.cosmosContainer.ReplaceItemAsync(
+                    ItemResponse<CosmosCacheSession> replaceCacheSessionResponse = await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
                             id: key,
                             item: cosmosCacheSessionResponse.Resource,
@@ -195,9 +204,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
+
+                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);    
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
+                    this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                     // Race condition on replace, we need do not need to refresh it
                 }
             }
@@ -224,7 +236,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             await this.ConnectAsync().ConfigureAwait(false);
             try
             {
-                await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
+                ItemResponse<CosmosCacheSession> deleteCacheSessionResponse = await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
                     partitionKey: new PartitionKey(key),
                     id: key,
                     requestOptions: new ItemRequestOptions()
@@ -232,9 +244,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         EnableContentResponseOnWrite = false,
                     },
                     cancellationToken: token).ConfigureAwait(false);
+
+                this.options.DiagnosticsHandler?.Invoke(deleteCacheSessionResponse.Diagnostics);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
+                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 // do nothing
             }
         }
@@ -269,7 +284,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
 
             await this.ConnectAsync().ConfigureAwait(false);
 
-            await this.cosmosContainer.UpsertItemAsync(
+            ItemResponse<CosmosCacheSession> setCacheSessionResponse = await this.cosmosContainer.UpsertItemAsync(
                 partitionKey: new PartitionKey(key),
                 item: CosmosCache.BuildCosmosCacheSession(
                     key,
@@ -281,6 +296,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     EnableContentResponseOnWrite = false,
                 },
                 cancellationToken: token).ConfigureAwait(false);
+
+            this.options.DiagnosticsHandler?.Invoke(setCacheSessionResponse.Diagnostics);
         }
 
         private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, CosmosCacheOptions cosmosCacheOptions)
