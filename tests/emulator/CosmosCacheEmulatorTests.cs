@@ -5,6 +5,7 @@
 namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
@@ -34,6 +35,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
         [Fact]
         public async Task InitializeContainerIfNotExists()
         {
+            DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
+
             const string sessionId = "sessionId";
             const int ttl = 1400;
             const int throughput = 2000;
@@ -46,7 +49,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
                 ContainerThroughput = throughput,
                 CreateIfNotExists = true,
                 ClientBuilder = builder,
-                DefaultTimeToLiveInMs = ttl
+                DefaultTimeToLiveInMs = ttl,
+                DiagnosticsHandler = diagnosticsSink.CaptureDiagnostics
             });
 
             CosmosCache cache = new CosmosCache(options);
@@ -64,6 +68,12 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             int? throughputContainer = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadThroughputAsync();
 
             Assert.Equal(throughput, throughputContainer);
+
+            Assert.Equal(4, diagnosticsSink.CapturedDiagnostics.Count);
+            foreach (CosmosDiagnostics diagnostics in diagnosticsSink.CapturedDiagnostics)
+            {
+                Assert.NotNull(diagnostics?.ToString());
+            }
         }
 
         [Fact]
@@ -173,6 +183,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
         [Fact]
         public async Task GetSessionData()
         {
+            DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
+
             const string sessionId = "sessionId";
             const int ttl = 1400;
             const int throughput = 2000;
@@ -185,7 +197,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
                 DatabaseName = CosmosCacheEmulatorTests.databaseName,
                 ContainerThroughput = throughput,
                 CreateIfNotExists = true,
-                ClientBuilder = builder
+                ClientBuilder = builder,
+                DiagnosticsHandler = diagnosticsSink.CaptureDiagnostics
             });
 
             CosmosCache cache = new CosmosCache(options);
@@ -194,11 +207,19 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             await cache.SetAsync(sessionId, data, cacheOptions);
 
             Assert.Equal(data, await cache.GetAsync(sessionId));
+
+            Assert.Equal(6, diagnosticsSink.CapturedDiagnostics.Count);
+            foreach (CosmosDiagnostics diagnostics in diagnosticsSink.CapturedDiagnostics)
+            {
+                Assert.NotNull(diagnostics?.ToString());
+            }
         }
 
         [Fact]
         public async Task RemoveSessionData()
         {
+            DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
+
             const string sessionId = "sessionId";
             const int ttl = 1400;
             const int throughput = 2000;
@@ -211,7 +232,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
                 DatabaseName = CosmosCacheEmulatorTests.databaseName,
                 ContainerThroughput = throughput,
                 CreateIfNotExists = true,
-                ClientBuilder = builder
+                ClientBuilder = builder,
+                DiagnosticsHandler = diagnosticsSink.CaptureDiagnostics
             });
 
             CosmosCache cache = new CosmosCache(options);
@@ -223,6 +245,12 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 
             CosmosException exception = await Assert.ThrowsAsync<CosmosException>(() => this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<dynamic>(sessionId, new PartitionKey(sessionId)));
             Assert.Equal(HttpStatusCode.NotFound, exception.StatusCode);
+
+            Assert.Equal(5, diagnosticsSink.CapturedDiagnostics.Count);
+            foreach (CosmosDiagnostics diagnostics in diagnosticsSink.CapturedDiagnostics)
+            {
+                Assert.NotNull(diagnostics?.ToString());
+            }
         }
 
         [Fact]
@@ -287,6 +315,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
         [Fact]
         public async Task RemoveSessionData_WhenNotExists()
         {
+            DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
+
             const string sessionId = "sessionId";
             const int ttl = 1400;
             const int throughput = 2000;
@@ -298,18 +328,27 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
                 DatabaseName = CosmosCacheEmulatorTests.databaseName,
                 ContainerThroughput = throughput,
                 CreateIfNotExists = true,
-                ClientBuilder = builder
+                ClientBuilder = builder,
+                DiagnosticsHandler = diagnosticsSink.CaptureDiagnostics
             });
 
             CosmosCache cache = new CosmosCache(options);
             DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
             cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
             await cache.RemoveAsync(sessionId);
+
+            Assert.Equal(4, diagnosticsSink.CapturedDiagnostics.Count);
+            foreach (CosmosDiagnostics diagnostics in diagnosticsSink.CapturedDiagnostics)
+            {
+                Assert.NotNull(diagnostics?.ToString());
+            }
         }
 
         [Fact]
         public async Task GetSessionData_WhenNotExists()
         {
+            DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
+
             const string sessionId = "sessionId";
             const int ttl = 1400;
             const int throughput = 2000;
@@ -321,13 +360,20 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
                 DatabaseName = CosmosCacheEmulatorTests.databaseName,
                 ContainerThroughput = throughput,
                 CreateIfNotExists = true,
-                ClientBuilder = builder
+                ClientBuilder = builder,
+                DiagnosticsHandler = diagnosticsSink.CaptureDiagnostics
             });
 
             CosmosCache cache = new CosmosCache(options);
             DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
             cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
             Assert.Null(await cache.GetAsync(sessionId));
+
+            Assert.Equal(4, diagnosticsSink.CapturedDiagnostics.Count);
+            foreach (CosmosDiagnostics diagnostics in diagnosticsSink.CapturedDiagnostics)
+            {
+                Assert.NotNull(diagnostics?.ToString());
+            }
         }
 
         [Fact]
@@ -430,6 +476,18 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 
             [JsonProperty("ttl")]
             public long? TimeToLive { get; set; }
+        }
+
+        private class DiagnosticsSink 
+        {
+            private List<CosmosDiagnostics> capturedDiagnostics = new List<CosmosDiagnostics>();
+
+            public IReadOnlyList<CosmosDiagnostics> CapturedDiagnostics => this.capturedDiagnostics.AsReadOnly();
+
+            public void CaptureDiagnostics(CosmosDiagnostics diagnostics)
+            {
+                this.capturedDiagnostics.Add(diagnostics);
+            }
         }
     }
 }
