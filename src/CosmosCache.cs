@@ -205,12 +205,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                             },
                             cancellationToken: token).ConfigureAwait(false);
 
-                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);    
+                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
-                    this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                     // Race condition on replace, we need do not need to refresh it
+                    this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                 }
             }
         }
@@ -249,8 +249,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 // do nothing
+                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
             }
         }
 
