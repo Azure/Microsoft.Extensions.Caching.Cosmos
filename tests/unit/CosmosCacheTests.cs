@@ -305,13 +305,11 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             mockedContainer.Verify(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
             mockedContainer.Verify(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Once);
 
-            Assert.Equal(6, diagnosticsSink.CapturedDiagnostics.Count);
+            Assert.Equal(4, diagnosticsSink.CapturedDiagnostics.Count);
             Assert.Same(mockedDatabaseDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[0]);
             Assert.Same(mockedContainerDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[1]);
             Assert.Same(mockedItemDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[2]);
             Assert.Same(mockedItemDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[3]);
-            Assert.Same(mockedItemDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[4]);
-            Assert.Same(mockedItemDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[5]);
         }
 
         [Fact]
