@@ -284,7 +284,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             mockedResponse.Setup(c => c.Diagnostics).Returns(mockedContainerDiagnostics.Object);
             mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
             mockedContainer.Setup(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedItemResponse.Object);
-            mockedContainer.Setup(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(new CosmosException("test", HttpStatusCode.PreconditionFailed, 0, "", 0));;
+            CosmosException preconditionFailedException = new CosmosException("test", HttpStatusCode.PreconditionFailed, 0, "", 0);
+            mockedContainer.Setup(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(preconditionFailedException);
             mockedDatabaseResponse.Setup(c => c.Diagnostics).Returns(mockedDatabaseDiagnostics.Object);
             mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
             mockedClient.Setup(c => c.GetDatabase(It.IsAny<string>())).Returns(mockedDatabase.Object);
@@ -309,7 +310,7 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             Assert.Same(mockedDatabaseDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[0]);
             Assert.Same(mockedContainerDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[1]);
             Assert.Same(mockedItemDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[2]);
-            Assert.Same(mockedItemDiagnostics.Object, diagnosticsSink.CapturedDiagnostics[3]);
+            Assert.Equal(preconditionFailedException.Diagnostics.ToString(), diagnosticsSink.CapturedDiagnostics[3].ToString());
         }
 
         [Fact]
