@@ -69,6 +69,29 @@ namespace Microsoft.Extensions.Caching.Cosmos
         public bool RetrySlidingExpirationUpdates { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets a delegate to capture operation diagnostics.
+        /// </summary>
+        /// <remarks>
+        /// <para>This delegate captures the <see cref="CosmosDiagnostics"/> from the operations performed on the Cosmos DB service.</para>
+        /// <para>Once set, it will be called for all executed operations and can be used for conditionally capturing diagnostics. </para>
+        /// </remarks>
+        public DiagnosticsDelegate DiagnosticsHandler { get; set; }
+
+
+        /// <summary>
+        /// Delegate to receive Diagnostics from the internal Cosmos DB operations.
+        /// </summary>
+        /// <example>
+        /// <code language="c#">
+        /// <![CDATA[
+        /// Container container = this.database.GetContainer("containerId");
+        /// ContainerProperties containerProperties = await container.ReadContainerAsync();
+        /// ]]>
+        /// </code>
+        /// </example>
+        public delegate void DiagnosticsDelegate (CosmosDiagnostics diagnostics);
+
+        /// <summary>
         /// Gets the current options values.
         /// </summary>
         CosmosCacheOptions IOptions<CosmosCacheOptions>.Value
