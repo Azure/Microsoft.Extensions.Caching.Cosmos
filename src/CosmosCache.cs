@@ -82,7 +82,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
 
             ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
             try
@@ -170,7 +170,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
 
             ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
             try
@@ -233,7 +233,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
             try
             {
                 ItemResponse<CosmosCacheSession> deleteCacheSessionResponse = await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
@@ -282,7 +282,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(options));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
 
             ItemResponse<CosmosCacheSession> setCacheSessionResponse = await this.cosmosContainer.UpsertItemAsync(
                 partitionKey: new PartitionKey(key),
@@ -409,6 +409,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 }
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
+                    this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
+
                     // Container is optimized as Key-Value store excluding all properties
                     string partitionKeyDefinition = CosmosCache.ContainerPartitionKeyPath;
                     if (!string.IsNullOrWhiteSpace(this.options.ContainerPartitionKeyAttribute))
@@ -416,7 +418,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         partitionKeyDefinition = $"/{this.options.ContainerPartitionKeyAttribute}";
                     }
 
-                    await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, partitionKeyDefinition)
+                    ContainerResponse newContainer = await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, partitionKeyDefinition)
                         .WithDefaultTimeToLive(defaultTimeToLive)
                         .WithIndexingPolicy()
                             .WithIndexingMode(IndexingMode.Consistent)
@@ -427,6 +429,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 .Attach()
                         .Attach()
                     .CreateAsync(this.options.ContainerThroughput).ConfigureAwait(false);
+                    this.options.DiagnosticsHandler?.Invoke(newContainer.Diagnostics);
                 }
             }
             else
