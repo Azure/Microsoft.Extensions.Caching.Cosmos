@@ -7,7 +7,7 @@
     <CurrentDate>$([System.DateTime]::Now.ToString(yyyyMMdd))</CurrentDate>
     <NeutralLanguage>en-US</NeutralLanguage>
     <ClientVersion>1.0.0</ClientVersion>
-    <VersionSuffix Condition=" '$(IsPreview)' == 'true' ">preview6</VersionSuffix>
+    <VersionSuffix Condition=" '$(IsPreview)' == 'true' ">preview</VersionSuffix>
     <Version Condition=" '$(VersionSuffix)' == '' ">$(ClientVersion)</Version>
     <Version Condition=" '$(VersionSuffix)' != '' ">$(ClientVersion)-$(VersionSuffix)</Version>
     <FileVersion>$(ClientVersion)</FileVersion>
