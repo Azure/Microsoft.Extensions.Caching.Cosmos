@@ -14,6 +14,30 @@ namespace Microsoft.Extensions.Caching.Cosmos
     public class CosmosCacheOptions : IOptions<CosmosCacheOptions>
     {
         /// <summary>
+        /// Delegate to receive Diagnostics from the internal Cosmos DB operations.
+        /// </summary>
+        /// <param name="diagnostics">An instance of <see cref="CosmosDiagnostics"/> result from a Cosmos DB service operation.</param>
+        /// <example>
+        /// <code language="c#">
+        /// <![CDATA[
+        /// void captureDiagnostics(CosmosDiagnostics diagnostics)
+        /// {
+        ///     if (diagnostics.GetClientElapsedTime() > SomePredefinedThresholdTime)
+        ///     {
+        ///         Console.WriteLine(diagnostics.ToString());
+        ///     }
+        /// }
+        ///
+        /// CosmosCacheOptions options = new CosmosCacheOptions(){
+        ///     /* Other options */,
+        ///     DiagnosticsHandler = captureDiagnostics
+        /// };
+        /// ]]>
+        /// </code>
+        /// </example>
+        public delegate void DiagnosticsDelegate(CosmosDiagnostics diagnostics);
+
+        /// <summary>
         /// Gets or sets an instance of <see cref="CosmosClientBuilder"/> to build a Cosmos Client with. Either use this or provide an existing <see cref="CosmosClient"/>.
         /// </summary>
         public CosmosClientBuilder ClientBuilder { get; set; }
@@ -67,6 +91,15 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// </remarks>
         /// <value>Default value is true.</value>
         public bool RetrySlidingExpirationUpdates { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a delegate to capture operation diagnostics.
+        /// </summary>
+        /// <remarks>
+        /// <para>This delegate captures the <see cref="CosmosDiagnostics"/> from the operations performed on the Cosmos DB service.</para>
+        /// <para>Once set, it will be called for all executed operations and can be used for conditionally capturing diagnostics. </para>
+        /// </remarks>
+        public DiagnosticsDelegate DiagnosticsHandler { get; set; }
 
         /// <summary>
         /// Gets the current options values.

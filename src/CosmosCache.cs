@@ -82,7 +82,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
 
             ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
             try
@@ -92,9 +92,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     id: key,
                     requestOptions: null,
                     cancellationToken: token).ConfigureAwait(false);
+
+                this.options.DiagnosticsHandler?.Invoke(cosmosCacheSessionResponse.Diagnostics);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
+                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 return null;
             }
 
@@ -122,7 +125,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     }
 
                     cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
-                    await this.cosmosContainer.ReplaceItemAsync(
+                    ItemResponse<CosmosCacheSession> replaceCacheSessionResponse = await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
                             id: key,
                             item: cosmosCacheSessionResponse.Resource,
@@ -132,9 +135,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
+
+                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
+                    this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                     if (this.options.RetrySlidingExpirationUpdates)
                     {
                         // Race condition on replace, we need to get the latest version of the item
@@ -164,7 +170,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
 
             ItemResponse<CosmosCacheSession> cosmosCacheSessionResponse;
             try
@@ -174,9 +180,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     id: key,
                     requestOptions: null,
                     cancellationToken: token).ConfigureAwait(false);
+
+                this.options.DiagnosticsHandler?.Invoke(cosmosCacheSessionResponse.Diagnostics);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
+                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 return;
             }
 
@@ -185,7 +194,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 try
                 {
                     cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
-                    await this.cosmosContainer.ReplaceItemAsync(
+                    ItemResponse<CosmosCacheSession> replaceCacheSessionResponse = await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
                             id: key,
                             item: cosmosCacheSessionResponse.Resource,
@@ -195,10 +204,13 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
+
+                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
                     // Race condition on replace, we need do not need to refresh it
+                    this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                 }
             }
         }
@@ -221,10 +233,10 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(key));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
             try
             {
-                await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
+                ItemResponse<CosmosCacheSession> deleteCacheSessionResponse = await this.cosmosContainer.DeleteItemAsync<CosmosCacheSession>(
                     partitionKey: new PartitionKey(key),
                     id: key,
                     requestOptions: new ItemRequestOptions()
@@ -232,10 +244,13 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         EnableContentResponseOnWrite = false,
                     },
                     cancellationToken: token).ConfigureAwait(false);
+
+                this.options.DiagnosticsHandler?.Invoke(deleteCacheSessionResponse.Diagnostics);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 // do nothing
+                this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
             }
         }
 
@@ -267,9 +282,9 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 throw new ArgumentNullException(nameof(options));
             }
 
-            await this.ConnectAsync().ConfigureAwait(false);
+            await this.ConnectAsync(token).ConfigureAwait(false);
 
-            await this.cosmosContainer.UpsertItemAsync(
+            ItemResponse<CosmosCacheSession> setCacheSessionResponse = await this.cosmosContainer.UpsertItemAsync(
                 partitionKey: new PartitionKey(key),
                 item: CosmosCache.BuildCosmosCacheSession(
                     key,
@@ -281,6 +296,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     EnableContentResponseOnWrite = false,
                 },
                 cancellationToken: token).ConfigureAwait(false);
+
+            this.options.DiagnosticsHandler?.Invoke(setCacheSessionResponse.Diagnostics);
         }
 
         private static CosmosCacheSession BuildCosmosCacheSession(string key, byte[] content, DistributedCacheEntryOptions options, CosmosCacheOptions cosmosCacheOptions)
@@ -379,7 +396,8 @@ namespace Microsoft.Extensions.Caching.Cosmos
             this.cosmosClient = this.GetClientInstance();
             if (this.options.CreateIfNotExists)
             {
-                await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.options.DatabaseName).ConfigureAwait(false);
+                DatabaseResponse databaseResponse = await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.options.DatabaseName).ConfigureAwait(false);
+                this.options.DiagnosticsHandler?.Invoke(databaseResponse.Diagnostics);
 
                 int defaultTimeToLive = this.options.DefaultTimeToLiveInMs.HasValue
                     && this.options.DefaultTimeToLiveInMs.Value > 0 ? this.options.DefaultTimeToLiveInMs.Value : CosmosCache.DefaultTimeToLive;
@@ -387,9 +405,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 try
                 {
                     ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
+                    this.options.DiagnosticsHandler?.Invoke(existingContainer.Diagnostics);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
+                    this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
+
                     // Container is optimized as Key-Value store excluding all properties
                     string partitionKeyDefinition = CosmosCache.ContainerPartitionKeyPath;
                     if (!string.IsNullOrWhiteSpace(this.options.ContainerPartitionKeyAttribute))
@@ -397,7 +418,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         partitionKeyDefinition = $"/{this.options.ContainerPartitionKeyAttribute}";
                     }
 
-                    await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, partitionKeyDefinition)
+                    ContainerResponse newContainer = await this.cosmosClient.GetDatabase(this.options.DatabaseName).DefineContainer(this.options.ContainerName, partitionKeyDefinition)
                         .WithDefaultTimeToLive(defaultTimeToLive)
                         .WithIndexingPolicy()
                             .WithIndexingMode(IndexingMode.Consistent)
@@ -408,6 +429,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 .Attach()
                         .Attach()
                     .CreateAsync(this.options.ContainerThroughput).ConfigureAwait(false);
+                    this.options.DiagnosticsHandler?.Invoke(newContainer.Diagnostics);
                 }
             }
             else
@@ -415,9 +437,11 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 try
                 {
                     ContainerResponse existingContainer = await this.cosmosClient.GetContainer(this.options.DatabaseName, this.options.ContainerName).ReadContainerAsync().ConfigureAwait(false);
+                    this.options.DiagnosticsHandler?.Invoke(existingContainer.Diagnostics);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
+                    this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                     throw new InvalidOperationException($"Cannot find an existing container named {this.options.ContainerName} within database {this.options.DatabaseName}");
                 }
             }
