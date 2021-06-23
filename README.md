@@ -57,6 +57,28 @@ Azure Cosmos DB has [multiple options](https://docs.microsoft.com/azure/cosmos-d
 
 Using other consistency levels is not recommended as read operations could be getting a stale version of the session.
 
+### Diagnosing and troubleshooting
+
+The provider executes operations on Cosmos DB based on the calls to the `IDistributedCache` APIs. There might be scenarios when the user wants to troubleshoot or diagnose these interactions (for example, on high latency scenarios).
+
+The `CosmosCacheOptions` expose a delegate that can be configured to capture the [Diagnostics](https://docs.microsoft.com/dotnet/api/microsoft.azure.cosmos.cosmosdiagnostics?view=azure-dotnet) from the SDK calls that are happening internally and decide to log them.
+
+```csharp
+void captureDiagnostics(CosmosDiagnostics diagnostics)
+{
+    if (diagnostics.GetClientElapsedTime() > SomePredefinedThresholdTime)
+    {
+        Console.WriteLine(diagnostics.ToString());
+    }
+}
+
+services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
+{
+    cacheOptions.DiagnosticsHandler = captureDiagnostics;
+    /* other options */
+});
+```
+
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
