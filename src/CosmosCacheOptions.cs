@@ -28,10 +28,11 @@ namespace Microsoft.Extensions.Caching.Cosmos
         ///     }
         /// }
         ///
-        /// CosmosCacheOptions options = new CosmosCacheOptions(){
-        ///     /* Other options */,
-        ///     DiagnosticsHandler = captureDiagnostics
-        /// };
+        /// services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
+        /// {
+        ///     cacheOptions.DiagnosticsHandler = captureDiagnostics;
+        ///     /* other options */
+        /// });
         /// ]]>
         /// </code>
         /// </example>
