@@ -4,6 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.0.0"/> 1.0.0 - 2021-07-14
+
+### Added
+
+- [#43](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/43) Adding Diagnostics capture APIs
+- [#44](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/44) & [#46](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/46) Bump dependencies versions to latest stable before GA release
+
 ## <a name="1.0.0-preview6"/> 1.0.0-preview6 - 2021-03-08
 
 ### Added
