@@ -400,7 +400,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 this.options.DiagnosticsHandler?.Invoke(databaseResponse.Diagnostics);
 
                 int defaultTimeToLive = this.options.DefaultTimeToLiveInMs.HasValue
-                    && this.options.DefaultTimeToLiveInMs.Value > 0 ? this.options.DefaultTimeToLiveInMs.Value : CosmosCache.DefaultTimeToLive;
+                    && this.options.DefaultTimeToLiveInMs.Value > 0 ? (int)TimeSpan.FromMilliseconds(this.options.DefaultTimeToLiveInMs.Value).TotalSeconds : CosmosCache.DefaultTimeToLive;
 
                 try
                 {
