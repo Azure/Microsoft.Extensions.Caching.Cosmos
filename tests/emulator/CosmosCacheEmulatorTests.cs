@@ -38,7 +38,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
 
             const string sessionId = "sessionId";
-            const int ttl = 1400;
+            const int ttl = 2000;
+            const int ttlInSeconds = ttl / 1000;
             const int throughput = 2000;
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
@@ -55,14 +56,14 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 
             CosmosCache cache = new CosmosCache(options);
             DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
-            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttlInSeconds);
             await cache.SetAsync(sessionId, new byte[0], cacheOptions);
 
             // Verify that container has been created
 
             ContainerResponse response = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadContainerAsync();
             Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.Equal(ttl, response.Resource.DefaultTimeToLive);
+            Assert.Equal(ttlInSeconds, response.Resource.DefaultTimeToLive);
             Assert.True(response.Resource.IndexingPolicy.ExcludedPaths.Any(e => e.Path.Equals("/*")));
 
             int? throughputContainer = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadThroughputAsync();
@@ -80,7 +81,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
         public async Task InitializeContainerIfNotExists_CustomPartitionKey()
         {
             const string sessionId = "sessionId";
-            const int ttl = 1400;
+            const int ttl = 2000;
+            const int ttlInSeconds = ttl / 1000;
             const int throughput = 2000;
             const string partitionKeyAttribute = "notTheId";
 
@@ -98,14 +100,14 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 
             CosmosCache cache = new CosmosCache(options);
             DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
-            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttlInSeconds);
             await cache.SetAsync(sessionId, new byte[0], cacheOptions);
 
             // Verify that container has been created
 
             ContainerResponse response = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadContainerAsync();
             Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.Equal(ttl, response.Resource.DefaultTimeToLive);
+            Assert.Equal(ttlInSeconds, response.Resource.DefaultTimeToLive);
             Assert.True(response.Resource.IndexingPolicy.ExcludedPaths.Any(e => e.Path.Equals("/*")));
             Assert.Equal($"/{partitionKeyAttribute}", response.Resource.PartitionKeyPath);
 
