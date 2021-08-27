@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.DependencyInjection
     using Microsoft.Extensions.Caching.Distributed;
 
     /// <summary>
-    /// Extension methods for setting up Redis distributed cache related services in an <see cref="IServiceCollection" />.
+    /// Extension methods for setting up Azure Cosmos DB distributed cache related services in an <see cref="IServiceCollection" />.
     /// </summary>
     public static class CosmosCacheServiceCollectionExtensions
     {
