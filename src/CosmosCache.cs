@@ -21,7 +21,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
         private const string ContainerPartitionKeyPath = "/id";
         private const int DefaultTimeToLive = -1;
         private readonly SemaphoreSlim connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
-        private readonly CosmosCacheOptions options;
+        private CosmosCacheOptions options;
         private CosmosClient cosmosClient;
         private Container cosmosContainer;
         private bool initializedClient;
@@ -53,6 +53,19 @@ namespace Microsoft.Extensions.Caching.Cosmos
             }
 
             this.options = optionsAccessor.Value;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CosmosCache"/> class.
+        /// </summary>
+        /// <remarks>
+        /// Using the <see cref="IOptionsMonitor{T}"/> would make the internal client reference to be updated if any of the options change.
+        /// </remarks>
+        /// <param name="optionsMonitor">Options monitor.</param>
+        public CosmosCache(IOptionsMonitor<CosmosCacheOptions> optionsMonitor)
+            : this(optionsMonitor.CurrentValue)
+        {
+            optionsMonitor.OnChange(this.OnOptionsChange);
         }
 
         /// <inheritdoc/>
@@ -388,6 +401,13 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 this.connectionLock.Release();
             }
+        }
+
+        private void OnOptionsChange(CosmosCacheOptions options)
+        {
+            this.options = options;
+            // Force re-initialization on the next Connect
+            this.cosmosContainer = null;
         }
 
         private async Task<Container> CosmosContainerInitializeAsync()
