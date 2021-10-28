@@ -23,7 +23,8 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
         public void RequiredParameters()
         {
             // Null-check
-            Assert.Throws<ArgumentNullException>(() => new CosmosCache(null));
+            Assert.Throws<ArgumentNullException>(() => new CosmosCache((IOptions<CosmosCacheOptions>)null));
+            Assert.Throws<ArgumentNullException>(() => new CosmosCache((IOptionsMonitor<CosmosCacheOptions>)null));
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){});
             // Database
@@ -50,13 +51,71 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
         }
 
         [Fact]
+        public async Task OnChangeOptionsReInitializes()
+        {
+            DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
+            string etag = "etag";
+            CosmosCacheSession existingSession = new CosmosCacheSession();
+            existingSession.SessionKey = "key";
+            existingSession.Content = new byte[0];
+            Mock<CosmosClient> mockedClient = new Mock<CosmosClient>();
+            Mock<Container> mockedContainer = new Mock<Container>();
+            Mock<ContainerResponse> mockedResponse = new Mock<ContainerResponse>();
+            Mock<CosmosDiagnostics> mockedContainerDiagnostics = new Mock<CosmosDiagnostics>();
+            Mock<ItemResponse<CosmosCacheSession>> mockedItemResponse = new Mock<ItemResponse<CosmosCacheSession>>();
+            Mock<CosmosDiagnostics> mockedItemDiagnostics = new Mock<CosmosDiagnostics>();
+            mockedResponse.Setup(c => c.StatusCode).Returns(HttpStatusCode.OK);
+            mockedResponse.Setup(c => c.Diagnostics).Returns(mockedContainerDiagnostics.Object);
+            mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
+            mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
+            mockedClient.Setup(x => x.Endpoint).Returns(new Uri("http://localhost"));
+            mockedItemResponse.Setup(c => c.Resource).Returns(existingSession);
+            mockedItemResponse.Setup(c => c.ETag).Returns(etag);
+            mockedItemResponse.Setup(c => c.Diagnostics).Returns(mockedItemDiagnostics.Object);
+            mockedContainer.Setup(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedItemResponse.Object);
+
+            CosmosCacheOptions initialOptions = new CosmosCacheOptions(){
+                DatabaseName = "something",
+                ContainerName = "something",
+                CosmosClient = mockedClient.Object,
+                DiagnosticsHandler = diagnosticsSink.CaptureDiagnostics
+            };
+
+            TestOptionsMonitor<CosmosCacheOptions> optionsMonitor = new TestOptionsMonitor<CosmosCacheOptions>(initialOptions);
+
+            CosmosCache cache = new CosmosCache(optionsMonitor);
+
+            await cache.GetAsync("key");
+
+            CosmosCacheOptions newOptions = new CosmosCacheOptions(){
+                DatabaseName = "something",
+                ContainerName = "somethingElse",
+                CosmosClient = mockedClient.Object,
+                DiagnosticsHandler = diagnosticsSink.CaptureDiagnostics
+            };
+
+            optionsMonitor.SetNewValue(newOptions);
+
+            await cache.GetAsync("key");
+
+            cache.Dispose();
+
+            mockedClient.Verify(c => c.GetContainer(It.IsAny<string>(), It.Is<string>(n => n == "something")), Times.Exactly(2));
+            mockedClient.Verify(c => c.GetContainer(It.IsAny<string>(), It.Is<string>(n => n == "somethingElse")), Times.Exactly(2));
+            mockedContainer.Verify(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            mockedContainer.Verify(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+            optionsMonitor.MockedDisposable.Verify(d => d.Dispose(), Times.Once);
+        }
+
+        [Fact]
         public async Task ConnectAsyncThrowsIfContainerDoesNotExist()
         {
             DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
 
             Mock<CosmosClient> mockedClient = new Mock<CosmosClient>();
             Mock<Container> mockedContainer = new Mock<Container>();
-            CosmosException exception = new CosmosException("test", HttpStatusCode.NotFound, 0, "", 0);
+            MockedException exception = new MockedException("test", HttpStatusCode.NotFound, 0, "", 0);
             mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(exception);
             mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
             mockedClient.Setup(x => x.Endpoint).Returns(new Uri("http://localhost"));
@@ -284,7 +343,7 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             mockedResponse.Setup(c => c.Diagnostics).Returns(mockedContainerDiagnostics.Object);
             mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
             mockedContainer.Setup(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedItemResponse.Object);
-            CosmosException preconditionFailedException = new CosmosException("test", HttpStatusCode.PreconditionFailed, 0, "", 0);
+            MockedException preconditionFailedException = new MockedException("test", HttpStatusCode.PreconditionFailed, 0, "", 0);
             mockedContainer.Setup(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(preconditionFailedException);
             mockedDatabaseResponse.Setup(c => c.Diagnostics).Returns(mockedDatabaseDiagnostics.Object);
             mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
@@ -339,7 +398,7 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             mockedResponse.Setup(c => c.Diagnostics).Returns(mockedContainerDiagnostics.Object);
             mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
             mockedContainer.Setup(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedItemResponse.Object);
-            CosmosException preconditionException = new CosmosException("test", HttpStatusCode.PreconditionFailed, 0, "", 0);
+            MockedException preconditionException = new MockedException("test", HttpStatusCode.PreconditionFailed, 0, "", 0);
             mockedContainer.SetupSequence(c => c.ReplaceItemAsync<CosmosCacheSession>(It.Is<CosmosCacheSession>(item => item == existingSession), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(preconditionException)
                 .ReturnsAsync(mockedItemResponse.Object);
@@ -385,9 +444,9 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             mockedResponse.Setup(c => c.StatusCode).Returns(HttpStatusCode.OK);
             mockedResponse.Setup(c => c.Diagnostics).Returns(mockedContainerDiagnostics.Object);
             mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
-            CosmosException notFoundException = new CosmosException("test", HttpStatusCode.NotFound, 0, "", 0);
+            MockedException notFoundException = new MockedException("test", HttpStatusCode.NotFound, 0, "", 0);
             mockedContainer.Setup(c => c.ReadItemAsync<CosmosCacheSession>(It.Is<string>(id => id == "key"), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(notFoundException);
-            mockedContainer.Setup(c => c.ReplaceItemAsync<CosmosCacheSession>(It.IsAny<CosmosCacheSession>(), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(new CosmosException("test", HttpStatusCode.NotFound, 0, "", 0));
+            mockedContainer.Setup(c => c.ReplaceItemAsync<CosmosCacheSession>(It.IsAny<CosmosCacheSession>(), It.Is<string>(id => id == "key"), It.IsAny<PartitionKey?>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(new MockedException("test", HttpStatusCode.NotFound, 0, "", 0));
             mockedClient.Setup(c => c.GetContainer(It.IsAny<string>(), It.IsAny<string>())).Returns(mockedContainer.Object);
             mockedClient.Setup(c => c.GetDatabase(It.IsAny<string>())).Returns(mockedDatabase.Object);
             mockedClient.Setup(x => x.Endpoint).Returns(new Uri("http://localhost"));
@@ -454,7 +513,7 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             mockedResponse.Setup(c => c.StatusCode).Returns(HttpStatusCode.OK);
             mockedResponse.Setup(c => c.Diagnostics).Returns(mockedContainerDiagnostics.Object);
             mockedContainer.Setup(c => c.ReadContainerAsync(It.IsAny<ContainerRequestOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockedResponse.Object);
-            CosmosException notExistException = new CosmosException("test remove not exist", HttpStatusCode.NotFound, 0, "", 0);
+            MockedException notExistException = new MockedException("test remove not exist", HttpStatusCode.NotFound, 0, "", 0);
             mockedContainer.Setup(c => c.DeleteItemAsync<CosmosCacheSession>("not-exist-key", It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(notExistException)
                 .Verifiable();
@@ -586,6 +645,51 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             {
                 this.capturedDiagnostics.Add(diagnostics);
             }
+        }
+
+        private class TestOptionsMonitor<CosmosCacheOptions> : IOptionsMonitor<CosmosCacheOptions>
+        {
+            private readonly List<Action<CosmosCacheOptions, string>> _callbacks = new List<Action<CosmosCacheOptions, string>>();
+            public Mock<IDisposable> MockedDisposable { get; } = new Mock<IDisposable>();
+
+            public TestOptionsMonitor(CosmosCacheOptions currentValue)
+            {
+                CurrentValue = currentValue;
+            }
+
+            public CosmosCacheOptions Get(string name)
+            {
+                return CurrentValue;
+            }
+
+            public IDisposable OnChange(Action<CosmosCacheOptions, string> listener)
+            {
+                this._callbacks.Add(listener);
+                return this.MockedDisposable.Object;
+            }
+
+            public void SetNewValue(CosmosCacheOptions newValue)
+            {
+                this.CurrentValue = newValue;
+                foreach (Action<CosmosCacheOptions, string> callback in this._callbacks)
+                {
+                    callback(newValue, string.Empty);
+                }
+            }
+
+            public CosmosCacheOptions CurrentValue { get;  private set; }
+        }
+
+        private class MockedException : CosmosException
+        {
+            private readonly Mock<CosmosDiagnostics> mockedDiagnostics = new Mock<CosmosDiagnostics>();
+
+            public MockedException(string message, HttpStatusCode statusCode, int subStatusCode, string activityId, double requestCharge) 
+            : base(message, statusCode, subStatusCode, activityId, requestCharge)
+            {
+            }
+
+            public override CosmosDiagnostics Diagnostics => this.mockedDiagnostics.Object;
         }
     }
 }

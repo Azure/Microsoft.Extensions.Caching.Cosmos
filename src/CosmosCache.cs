@@ -21,10 +21,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
         private const string ContainerPartitionKeyPath = "/id";
         private const int DefaultTimeToLive = -1;
         private readonly SemaphoreSlim connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
-        private readonly CosmosCacheOptions options;
+        private readonly IDisposable monitorListener;
+        private CosmosCacheOptions options;
         private CosmosClient cosmosClient;
         private Container cosmosContainer;
         private bool initializedClient;
+        private bool isDisposed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CosmosCache"/> class.
@@ -32,36 +34,44 @@ namespace Microsoft.Extensions.Caching.Cosmos
         /// <param name="optionsAccessor">Options accessor.</param>
         public CosmosCache(IOptions<CosmosCacheOptions> optionsAccessor)
         {
-            if (optionsAccessor == null)
+            this.Initialize(optionsAccessor);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CosmosCache"/> class.
+        /// </summary>
+        /// <remarks>
+        /// Using the <see cref="IOptionsMonitor{T}"/> would make the internal client reference to be updated if any of the options change.
+        /// </remarks>
+        /// <param name="optionsMonitor">Options monitor.</param>
+        public CosmosCache(IOptionsMonitor<CosmosCacheOptions> optionsMonitor)
+        {
+            if (optionsMonitor == null)
             {
-                throw new ArgumentNullException(nameof(optionsAccessor));
+                throw new ArgumentNullException(nameof(optionsMonitor));
             }
 
-            if (string.IsNullOrEmpty(optionsAccessor.Value.DatabaseName))
-            {
-                throw new ArgumentNullException(nameof(optionsAccessor.Value.DatabaseName));
-            }
+            this.Initialize(optionsMonitor.CurrentValue);
 
-            if (string.IsNullOrEmpty(optionsAccessor.Value.ContainerName))
-            {
-                throw new ArgumentNullException(nameof(optionsAccessor.Value.ContainerName));
-            }
-
-            if (optionsAccessor.Value.ClientBuilder == null && optionsAccessor.Value.CosmosClient == null)
-            {
-                throw new ArgumentNullException("You need to specify either a CosmosConfiguration or an existing CosmosClient in the CosmosCacheOptions.");
-            }
-
-            this.options = optionsAccessor.Value;
+            this.monitorListener = optionsMonitor.OnChange(this.OnOptionsChange);
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
             if (this.initializedClient && this.cosmosClient != null)
             {
                 this.cosmosClient.Dispose();
             }
+
+            this.monitorListener?.Dispose();
+
+            this.isDisposed = true;
         }
 
         /// <inheritdoc/>
@@ -367,6 +377,31 @@ namespace Microsoft.Extensions.Caching.Cosmos
             return absoluteExpiration;
         }
 
+        private void Initialize(IOptions<CosmosCacheOptions> optionsAccessor)
+        {
+            if (optionsAccessor == null)
+            {
+                throw new ArgumentNullException(nameof(optionsAccessor));
+            }
+
+            if (string.IsNullOrEmpty(optionsAccessor.Value.DatabaseName))
+            {
+                throw new ArgumentNullException(nameof(optionsAccessor.Value.DatabaseName));
+            }
+
+            if (string.IsNullOrEmpty(optionsAccessor.Value.ContainerName))
+            {
+                throw new ArgumentNullException(nameof(optionsAccessor.Value.ContainerName));
+            }
+
+            if (optionsAccessor.Value.ClientBuilder == null && optionsAccessor.Value.CosmosClient == null)
+            {
+                throw new ArgumentNullException("You need to specify either a CosmosConfiguration or an existing CosmosClient in the CosmosCacheOptions.");
+            }
+
+            this.options = optionsAccessor.Value;
+        }
+
         private async Task ConnectAsync(CancellationToken token = default(CancellationToken))
         {
             token.ThrowIfCancellationRequested();
@@ -388,6 +423,21 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 this.connectionLock.Release();
             }
+        }
+
+        private void OnOptionsChange(CosmosCacheOptions options)
+        {
+            // Did we create our own internal client? If so, we need to dispose it.
+            if (this.initializedClient && this.cosmosClient != null)
+            {
+                // In case this becomes an issue with concurrent access to the client, we can see if ReaderWriterLockSlim can be leveraged.
+                this.cosmosClient.Dispose();
+            }
+
+            this.options = options;
+
+            // Force re-initialization on the next Connect
+            this.cosmosContainer = null;
         }
 
         private async Task<Container> CosmosContainerInitializeAsync()

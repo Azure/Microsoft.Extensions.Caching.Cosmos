@@ -7,6 +7,7 @@ namespace Microsoft.Extensions.DependencyInjection
     using System;
     using Microsoft.Extensions.Caching.Cosmos;
     using Microsoft.Extensions.Caching.Distributed;
+    using Microsoft.Extensions.Options;
 
     /// <summary>
     /// Extension methods for setting up Azure Cosmos DB distributed cache related services in an <see cref="IServiceCollection" />.
@@ -34,7 +35,17 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddOptions();
             services.Configure(setupAction);
-            services.Add(ServiceDescriptor.Singleton<IDistributedCache, CosmosCache>());
+            services.Add(ServiceDescriptor.Singleton<IDistributedCache, CosmosCache>((IServiceProvider provider) =>
+            {
+                IOptionsMonitor<CosmosCacheOptions> optionsMonitor = provider.GetService<IOptionsMonitor<CosmosCacheOptions>>();
+                if (optionsMonitor != null)
+                {
+                    return new CosmosCache(optionsMonitor);
+                }
+
+                IOptions<CosmosCacheOptions> options = provider.GetRequiredService<IOptions<CosmosCacheOptions>>();
+                return new CosmosCache(options);
+            }));
 
             return services;
         }
