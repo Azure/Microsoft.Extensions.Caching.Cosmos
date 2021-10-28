@@ -69,10 +69,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 this.cosmosClient.Dispose();
             }
 
-            if (this.monitorListener != null)
-            {
-                this.monitorListener.Dispose();
-            }
+            this.monitorListener?.Dispose();
 
             this.isDisposed = true;
         }
