@@ -4,6 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.1.1"/> 1.1.1 - 2021-10-28
+
+### Added
+
+- [#58](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/58) Added support for IOptionsMonitor
+
+
 ## <a name="1.0.1"/> 1.0.1 - 2021-08-24
 
 ### Fixed
