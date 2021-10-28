@@ -430,6 +430,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
             // Did we create our own internal client? If so, we need to dispose it.
             if (this.initializedClient && this.cosmosClient != null)
             {
+                // In case this becomes an issue with concurrent access to the client, we can see if ReaderWriterLockSlim can be leveraged.
                 this.cosmosClient.Dispose();
             }
 
