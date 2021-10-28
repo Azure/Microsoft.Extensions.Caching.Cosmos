@@ -37,7 +37,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.Configure(setupAction);
             services.Add(ServiceDescriptor.Singleton<IDistributedCache, CosmosCache>((IServiceProvider provider) =>
             {
-                IOptionsMonitor<CosmosCacheOptions> optionsMonitor = provider.GetRequiredService<IOptionsMonitor<CosmosCacheOptions>>();
+                IOptionsMonitor<CosmosCacheOptions> optionsMonitor = provider.GetService<IOptionsMonitor<CosmosCacheOptions>>();
                 if (optionsMonitor != null)
                 {
                     return new CosmosCache(optionsMonitor);
