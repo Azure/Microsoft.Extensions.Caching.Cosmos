@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+
+- [#62](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/62) Fixed error text to point to correct missing property when deserializing session object
+
 ## <a name="1.2.0"/> 1.2.0 - 2022-02-23
 
 ### Added
