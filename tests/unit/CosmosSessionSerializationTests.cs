@@ -78,5 +78,17 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
             string serialized = JsonConvert.SerializeObject(existingSession);
             Assert.Equal(expectedContract , serialized);
         }
+
+        [Fact]
+        public void MissingRequiredProperties()
+        {
+            const string withoutId = "{\"content\":\"AQ==\",\"ttl\":5,\"isSlidingExpiration\":true,\"absoluteSlidingExpiration\":10}";
+            JsonReaderException withoutIdException = Assert.Throws<JsonReaderException>(() => JsonConvert.DeserializeObject<CosmosCacheSession>(withoutId));
+            Assert.Contains("Missing 'id'", withoutIdException.Message);
+
+            const string withoutContent = "{\"id\":\"1\", \"ttl\":5,\"isSlidingExpiration\":true,\"absoluteSlidingExpiration\":10}";
+            JsonReaderException withoutContentException = Assert.Throws<JsonReaderException>(() => JsonConvert.DeserializeObject<CosmosCacheSession>(withoutContent));
+            Assert.Contains("Missing 'content'", withoutContentException.Message);
+        }
     }
 }
