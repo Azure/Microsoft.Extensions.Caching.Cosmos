@@ -36,14 +36,14 @@ namespace Microsoft.Extensions.Caching.Cosmos
 
             if (!jObject.TryGetValue(CosmosCacheSessionConverter.IdAttributeName, out JToken idJToken))
             {
-                throw new JsonReaderException("Missing id on Cosmos DB session item.");
+                throw new JsonReaderException("Missing 'id' on Cosmos DB session item.");
             }
 
             cosmosCacheSession.SessionKey = idJToken.Value<string>();
 
             if (!jObject.TryGetValue(CosmosCacheSessionConverter.ContentAttributeName, out JToken contentJToken))
             {
-                throw new JsonReaderException("Missing id on Cosmos DB session item.");
+                throw new JsonReaderException("Missing 'content' on Cosmos DB session item.");
             }
 
             cosmosCacheSession.Content = Convert.FromBase64String(contentJToken.Value<string>());
