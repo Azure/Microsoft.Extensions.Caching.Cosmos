@@ -4,7 +4,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyName>Microsoft.Extensions.Caching.Cosmos.Tests</AssemblyName>
     <RootNamespace>Microsoft.Extensions.Caching.Cosmos.Tests</RootNamespace>
