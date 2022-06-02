@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.3.0"/> 1.3.0 - 2022-06-02
+
+### Added
+
+- [#63](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/63) Increased SDK dependency version and Microsoft.Extensions.Caching.Abstractions to 6.X to align with NET Core 3.1 deprecation
+
 ### Fixed
 
 - [#62](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/62) Fixed error text to point to correct missing property when deserializing session object
