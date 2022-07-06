@@ -46,6 +46,8 @@ services.AddCosmosCache((CosmosCacheOptions cacheOptions) =>
 
 The provider stores the state in a container within a database, both parameters are required within the `CosmosCacheOptions` initialization. An optional parameter, `CreateIfNotExists` will make sure to create the container if it does not exist with an optimized configuration for key-value storage. `ContainerThroughput` can be used to specify a particular Throughput on the container.
 
+> When providing an existing container and not using `CreateIfNotExists`, make sure the container has [time to live enabled](https://docs.microsoft.com//azure/cosmos-db/sql/how-to-time-to-live#enable-time-to-live-on-a-container-using-the-azure-portal).
+
 ### Cosmos account consistency
 
 Consistency in a distributed cache is important, especially when applications are deployed across multiple instances and user requests can be distributed across all of them. 
