@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
-## <a name="1.4.0"/> 1.4.0 - 2022-10-078
+## <a name="1.4.0"/> 1.4.0 - 2022-10-08
 
 ### Added
 
