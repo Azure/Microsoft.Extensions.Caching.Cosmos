@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.4.0"/> 1.4.0 - 2022-10-08
+
+### Added
+
+- [#69](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/69) Increased SDK dependency version for critical fixes
+
 ## <a name="1.3.0"/> 1.3.0 - 2022-06-02
 
 ### Added
