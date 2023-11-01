@@ -13,7 +13,8 @@
     },
     {
         "library": "jquery-validate@1.20.0",
-        "destination": "wwwroot/lib/jquery-validation/dist/"
+        "destination": "wwwroot/lib/jquery-validation/dist/",
+        "files": ["additional-methods.js", "additional-methods.min.js", "jquery.validate.js", "jquery.validate.min.js"]
     },
     {
         "library": "jquery-validation-unobtrusive@4.0.0",
