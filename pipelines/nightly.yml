@@ -10,15 +10,16 @@ schedules:
 
 strategy:
   matrix:
-    linux:
-      imageName: 'ubuntu-latest'
-    mac:
-      imageName: 'macOS-latest'
     windows:
       imageName: 'windows-latest'
 
 pool:
   vmImage: $(imageName)
+
+variables:
+  Codeql.Enabled: true
+  Codeql.BuildIdentifier: ga
+  Codeql.SkipTaskAutoInjection: false
 
 steps:
 - task: UseDotNet@2
