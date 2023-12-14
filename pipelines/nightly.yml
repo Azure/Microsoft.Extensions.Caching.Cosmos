@@ -20,6 +20,10 @@ strategy:
 pool:
   vmImage: $(imageName)
 
+variables:
+  Codeql.Enabled: true
+  Codeql.BuildIdentifier: ga
+
 steps:
 - task: UseDotNet@2
   displayName: Use .NET 6.0
