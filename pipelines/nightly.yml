@@ -16,6 +16,8 @@ strategy:
 pool:
   vmImage: $(imageName)
 
+permissions: read-all
+
 variables:
   Codeql.Enabled: true
   Codeql.BuildIdentifier: ga

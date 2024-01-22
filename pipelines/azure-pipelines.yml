@@ -17,6 +17,8 @@ strategy:
 pool:
   vmImage: $(imageName)
 
+permissions: read-all
+
 steps:
 - task: UseDotNet@2
   displayName: Use .NET 6.0

@@ -9,6 +9,7 @@ stages:
   displayName: Publish 
   jobs:
     - job:
+      permissions: read-all
       pool:
         vmImage: 'windows-latest'
     

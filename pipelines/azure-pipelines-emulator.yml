@@ -8,6 +8,8 @@ pr:
 pool:
   vmImage: 'windows-latest'
 
+permissions: read-all
+
 steps:
 - pwsh:  |
         Write-Host "Downloading Cosmos Emulator - $env:EMULATORMSIURL" -ForegroundColor green 
