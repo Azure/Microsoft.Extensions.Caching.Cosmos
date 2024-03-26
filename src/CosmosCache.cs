@@ -122,7 +122,9 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         DateTimeOffset absoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault());
                         if (absoluteExpiration < DateTimeOffset.UtcNow)
                         {
-                            cosmosCacheSessionResponse.Resource.TimeToLive = 0;
+                            // At this point the cache item we just read expired, in which case, we should treat it as not found.
+                            // The TTL will clean it up on the container.
+                            return null;
                         }
                         else
                         {
@@ -147,6 +149,12 @@ namespace Microsoft.Extensions.Caching.Cosmos
                             cancellationToken: token).ConfigureAwait(false);
 
                     this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // The cache item has expired in-between the read and replace operations.
+                    this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
+                    return null;
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
@@ -203,6 +211,26 @@ namespace Microsoft.Extensions.Caching.Cosmos
             {
                 try
                 {
+                    if (cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault() > 0)
+                    {
+                        long ttl = cosmosCacheSessionResponse.Resource.TimeToLive.Value;
+                        DateTimeOffset absoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault());
+                        if (absoluteExpiration < DateTimeOffset.UtcNow)
+                        {
+                            // At this point the cache item we just read expired, in which case, we should treat it as not found.
+                            // The TTL will clean it up on the container.
+                            return;
+                        }
+                        else
+                        {
+                            double pendingSeconds = (absoluteExpiration - DateTimeOffset.UtcNow).TotalSeconds;
+                            if (pendingSeconds < ttl)
+                            {
+                                cosmosCacheSessionResponse.Resource.TimeToLive = (long)pendingSeconds;
+                            }
+                        }
+                    }
+
                     cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
                     ItemResponse<CosmosCacheSession> replaceCacheSessionResponse = await this.cosmosContainer.ReplaceItemAsync(
                             partitionKey: new PartitionKey(key),
@@ -216,6 +244,11 @@ namespace Microsoft.Extensions.Caching.Cosmos
                             cancellationToken: token).ConfigureAwait(false);
 
                     this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // The cache item has expired in-between the read and replace operations.
+                    this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {

@@ -4,12 +4,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.6.1"/> 1.6.1 - 2024-03-27
+
+### Fixed
+
+- [#80](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/80) Fixed race conditions on SlidingExpiration + AbsoluteExpiration
+
 ## <a name="1.6.0"/> 1.6.0 - 2023-11-01
 
 ### Added
 
 - [#72](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/72) Increased SDK dependency version for critical fixes
-
 
 ## <a name="1.5.0"/> 1.5.0 - 2023-06-22
 
