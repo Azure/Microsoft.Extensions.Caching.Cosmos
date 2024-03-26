@@ -6,7 +6,7 @@
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <CurrentDate>$([System.DateTime]::Now.ToString(yyyyMMdd))</CurrentDate>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <ClientVersion>1.6.0</ClientVersion>
+    <ClientVersion>1.6.1</ClientVersion>
     <VersionSuffix Condition=" '$(IsPreview)' == 'true' ">preview</VersionSuffix>
     <Version Condition=" '$(VersionSuffix)' == '' ">$(ClientVersion)</Version>
     <Version Condition=" '$(VersionSuffix)' != '' ">$(ClientVersion)-$(VersionSuffix)</Version>
