@@ -8,13 +8,8 @@ schedules:
     include:
     - master
 
-strategy:
-  matrix:
-    windows:
-      imageName: 'windows-latest'
-
 pool:
-  vmImage: $(imageName)
+  name: 'OneES'
 
 variables:
   Codeql.Enabled: true

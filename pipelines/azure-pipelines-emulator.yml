@@ -6,7 +6,7 @@ pr:
     - releases/*
 
 pool:
-  vmImage: 'windows-latest'
+  name: 'OneES'
 
 steps:
 - pwsh:  |

@@ -10,7 +10,7 @@ stages:
   jobs:
     - job:
       pool:
-        vmImage: 'windows-latest'
+        name: 'OneES'
     
       steps:
       - task: UseDotNet@2

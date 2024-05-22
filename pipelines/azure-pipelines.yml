@@ -5,17 +5,8 @@ pr:
     - master
     - releases/*
 
-strategy:
-  matrix:
-    linux:
-      imageName: 'ubuntu-latest'
-    mac:
-      imageName: 'macOS-latest'
-    windows:
-      imageName: 'windows-latest'
-
 pool:
-  vmImage: $(imageName)
+  name: 'OneES'
 
 steps:
 - task: UseDotNet@2
