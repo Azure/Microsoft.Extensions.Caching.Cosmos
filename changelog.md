@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## <a name="1.6.2"/> 1.6.2 - 2024-08-30
+
+### Fixed
+
+- [#84](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/84) Fix race condition with less than 1 seconds left on sliding expiration
+
 ## <a name="1.6.1"/> 1.6.1 - 2024-03-27
 
 ### Fixed
