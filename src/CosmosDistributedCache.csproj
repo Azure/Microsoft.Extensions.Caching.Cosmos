@@ -6,7 +6,7 @@
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <CurrentDate>$([System.DateTime]::Now.ToString(yyyyMMdd))</CurrentDate>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <ClientVersion>1.6.3</ClientVersion>
+    <ClientVersion>1.7.0</ClientVersion>
     <VersionSuffix Condition=" '$(IsPreview)' == 'true' ">preview</VersionSuffix>
     <Version Condition=" '$(VersionSuffix)' == '' ">$(ClientVersion)</Version>
     <Version Condition=" '$(VersionSuffix)' != '' ">$(ClientVersion)-$(VersionSuffix)</Version>
@@ -40,7 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.35.4" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.43.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
   </ItemGroup>
