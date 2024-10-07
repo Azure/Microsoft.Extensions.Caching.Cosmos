@@ -719,7 +719,7 @@ namespace Microsoft.Extensions.Caching.Cosmos.Tests
         public async Task SlidingExpirationWithAbsoluteExpirationOnAlmostExpiredRead()
         {
             const int ttlSliding = 20;
-            const int ttlAbsolute = 500;
+            const int ttlAbsolute = 900;
             string etag = "etag";
             CosmosCacheSession existingSession = new CosmosCacheSession();
             existingSession.SessionKey = "key";

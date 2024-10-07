@@ -129,7 +129,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         else
                         {
                             double pendingSeconds = (absoluteExpiration - DateTimeOffset.UtcNow).TotalSeconds;
-                            if (pendingSeconds == 0)
+                            if (pendingSeconds < 1)
                             {
                                 // Cosmos DB TTL works on seconds granularity and this item has less than a second to live.
                                 // Return the content because it does exist, but it will be cleaned up by the TTL shortly after.
@@ -231,7 +231,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                         else
                         {
                             double pendingSeconds = (absoluteExpiration - DateTimeOffset.UtcNow).TotalSeconds;
-                            if (pendingSeconds == 0)
+                            if (pendingSeconds < 1)
                             {
                                 // Cosmos DB TTL works on seconds granularity and this item has less than a second to live.
                                 // Treat it as a cache-miss.
