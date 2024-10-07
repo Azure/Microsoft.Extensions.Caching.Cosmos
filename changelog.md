@@ -4,15 +4,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
-## <a name="1.7.0"/> 1.7.0 - 2024-10-04
+## <a name="1.7.0"/> 1.7.0 - 2024-10-08
 
 ### Added
 
-- [#72](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/85) Increased SDK dependency version for critical fixes
+- [#85](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/85) Increased SDK dependency version for critical fixes
 
 ### Fixed
 
-- [#84](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/85) Fix another race condition with less than 1 seconds left on sliding expiration
+- [#85](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/85) Fix another race condition with less than 1 seconds left on sliding expiration
 
 ## <a name="1.6.2"/> 1.6.2 - 2024-08-30
 
