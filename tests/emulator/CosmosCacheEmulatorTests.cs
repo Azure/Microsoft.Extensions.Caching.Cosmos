@@ -116,14 +116,20 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             Assert.Equal(throughput, throughputContainer);
         }
 
-        [Fact]
-        public async Task StoreSessionData()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task StoreSessionData(bool useSystemTextJson)
         {
             const string sessionId = "sessionId";
             const int ttl = 1400;
             const int throughput = 2000;
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
                 ContainerName = "session",
@@ -146,8 +152,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             Assert.Equal(data, storedSession.Content);
         }
 
-        [Fact]
-        public async Task StoreSessionData_CustomPartitionKey()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task StoreSessionData_CustomPartitionKey(bool useSystemTextJson)
         {
             const string sessionId = "sessionId";
             const int ttl = 1400;
@@ -155,6 +163,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             const string partitionKeyAttribute = "notTheId";
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
                 ContainerName = "session",
@@ -182,8 +194,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             Assert.Equal(sessionId, (string)dynamicSession.Resource.notTheId);
         }
 
-        [Fact]
-        public async Task GetSessionData()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetSessionData(bool useSystemTextJson)
         {
             DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
 
@@ -193,6 +207,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             byte[] data = new byte[1] { 1 };
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
                 ContainerName = "session",
@@ -217,8 +235,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             }
         }
 
-        [Fact]
-        public async Task RemoveSessionData()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task RemoveSessionData(bool useSystemTextJson)
         {
             DiagnosticsSink diagnosticsSink = new DiagnosticsSink();
 
@@ -228,6 +248,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             byte[] data = new byte[1] { 1 };
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
                 ContainerName = "session",
@@ -255,8 +279,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             }
         }
 
-        [Fact]
-        public async Task GetSessionData_CustomPartitionKey()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetSessionData_CustomPartitionKey(bool useSystemTextJson)
         {
             const string sessionId = "sessionId";
             const int ttl = 1400;
@@ -265,6 +291,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             const string partitionKeyAttribute = "notTheId";
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
                 ContainerName = "session",
@@ -283,8 +313,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             Assert.Equal(data, await cache.GetAsync(sessionId));
         }
 
-        [Fact]
-        public async Task RemoveSessionData_CustomPartitionKey()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task RemoveSessionData_CustomPartitionKey(bool useSystemTextJson)
         {
             const string sessionId = "sessionId";
             const int ttl = 1400;
@@ -293,6 +325,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             const string partitionKeyAttribute = "notTheId";
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
                 ContainerName = "session",
@@ -428,8 +464,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             Assert.Null(await cache.GetAsync(sessionId));
         }
 
-        [Fact]
-        public async Task SlidingAndAbsoluteExpiration()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task SlidingAndAbsoluteExpiration(bool useSystemTextJson)
         {
             const string sessionId = "sessionId";
             const int ttl = 10;
@@ -437,6 +475,10 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             const int throughput = 400;
 
             CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
 
             IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
                 ContainerName = "session",
