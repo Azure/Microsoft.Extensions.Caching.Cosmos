@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-- [#85](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/85) Support Cosmos DB SDK with System.Text.Json serialization.
+- [#87](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/pull/87) Support Cosmos DB SDK with System.Text.Json serialization.
 
 ## <a name="1.7.0"/> 1.7.0 - 2024-10-08
 
