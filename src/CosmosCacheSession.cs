@@ -8,6 +8,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
     using Newtonsoft.Json;
 
     [JsonConverter(typeof(CosmosCacheSessionConverter))]
+    [System.Text.Json.Serialization.JsonConverter(typeof(CosmosCacheSessionConverterSTJ))]
     internal class CosmosCacheSession
     {
         public string SessionKey { get; set; }
