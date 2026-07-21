@@ -510,6 +510,136 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
             Assert.True(storedSession.TimeToLive < ttl);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetResetsSlidingExpirationTimestamp(bool useSystemTextJson)
+        {
+            const string sessionId = "sessionId";
+            const int ttl = 600;
+            const int throughput = 400;
+            byte[] data = new byte[4] { 1, 2, 3, 4 };
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            await cache.SetAsync(sessionId, data, cacheOptions);
+
+            CosmosCacheSession before = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+
+            await Task.Delay(2000); // _ts has 1-second granularity; wait so a bump is observable.
+
+            Assert.Equal(data, await cache.GetAsync(sessionId));
+
+            CosmosCacheSession after = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+
+            // Patching /ttl (to its current value here) must update _ts, resetting the sliding window,
+            // while leaving the ttl value and the content untouched.
+            Assert.True(after.Timestamp > before.Timestamp, $"expected _ts to advance (before={before.Timestamp}, after={after.Timestamp})");
+            Assert.Equal(ttl, after.TimeToLive);
+            Assert.Equal(data, after.Content);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task RefreshResetsSlidingExpirationTimestamp(bool useSystemTextJson)
+        {
+            const string sessionId = "sessionId";
+            const int ttl = 600;
+            const int throughput = 400;
+            byte[] data = new byte[4] { 1, 2, 3, 4 };
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.SlidingExpiration = TimeSpan.FromSeconds(ttl);
+            await cache.SetAsync(sessionId, data, cacheOptions);
+
+            CosmosCacheSession before = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+
+            await Task.Delay(2000); // _ts has 1-second granularity; wait so a bump is observable.
+
+            await cache.RefreshAsync(sessionId);
+
+            CosmosCacheSession after = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+
+            // Refresh behaves like Get: patch /ttl to reset the window (bump _ts), content untouched.
+            Assert.True(after.Timestamp > before.Timestamp, $"expected _ts to advance (before={before.Timestamp}, after={after.Timestamp})");
+            Assert.Equal(ttl, after.TimeToLive);
+            Assert.Equal(data, after.Content);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task AbsoluteExpirationIsNotSlidOnGetOrRefresh(bool useSystemTextJson)
+        {
+            const string sessionId = "sessionId";
+            const int absoluteTtl = 600;
+            const int throughput = 400;
+            byte[] data = new byte[4] { 1, 2, 3, 4 };
+
+            CosmosClientBuilder builder = new CosmosClientBuilder(ConfigurationManager.AppSettings["Endpoint"], ConfigurationManager.AppSettings["MasterKey"]);
+            if (useSystemTextJson)
+            {
+                builder.WithSystemTextJsonSerializerOptions(new System.Text.Json.JsonSerializerOptions());
+            }
+
+            IOptions<CosmosCacheOptions> options = Options.Create(new CosmosCacheOptions(){
+                ContainerName = "session",
+                DatabaseName = CosmosCacheEmulatorTests.databaseName,
+                ContainerThroughput = throughput,
+                CreateIfNotExists = true,
+                ClientBuilder = builder
+            });
+
+            CosmosCache cache = new CosmosCache(options);
+            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions();
+            cacheOptions.AbsoluteExpiration = DateTimeOffset.UtcNow.AddSeconds(absoluteTtl);
+            await cache.SetAsync(sessionId, data, cacheOptions);
+
+            CosmosCacheSession before = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+
+            await Task.Delay(2000);
+
+            await cache.GetAsync(sessionId);
+            await cache.RefreshAsync(sessionId);
+
+            CosmosCacheSession after = await this.testClient.GetContainer(CosmosCacheEmulatorTests.databaseName, "session").ReadItemAsync<CosmosCacheSession>(sessionId, new PartitionKey(sessionId));
+
+            // An absolute-only item is not sliding, so Get/Refresh must not write to it (no _ts bump, no over-extension).
+            Assert.Equal(before.Timestamp, after.Timestamp);
+            Assert.Equal(data, after.Content);
+        }
+
         private class CosmosCacheSession
         {
             [JsonProperty("id")]
@@ -520,6 +650,9 @@ namespace Microsoft.Extensions.Caching.Cosmos.EmulatorTests
 
             [JsonProperty("ttl")]
             public long? TimeToLive { get; set; }
+
+            [JsonProperty("_ts")]
+            public long Timestamp { get; set; }
         }
 
         private class DiagnosticsSink 

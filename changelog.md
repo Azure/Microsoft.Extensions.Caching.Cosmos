@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+
+- [#88](https://github.com/Azure/Microsoft.Extensions.Caching.Cosmos/issues/88) Reset the sliding expiration TTL with a partial document patch of `ttl` instead of re-writing the whole document (including the cached content) on `Get` and `Refresh`.
+
 ## <a name="1.8.0"/> 1.8.0 - 2025-04-20
 
 ### Added
