@@ -5,6 +5,7 @@
 namespace Microsoft.Extensions.Caching.Cosmos
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -111,14 +112,15 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 return null;
             }
 
-            // If using sliding expiration then replace item with itself in order to reset the ttl in Cosmos
+            // If using sliding expiration then patch the item's ttl (which updates its _ts) to reset the sliding
+            // expiration window in Cosmos without re-sending the whole document (including its content).
             if (cosmosCacheSessionResponse.Resource.IsSlidingExpiration.GetValueOrDefault())
             {
                 try
                 {
+                    long timeToLive = cosmosCacheSessionResponse.Resource.TimeToLive.GetValueOrDefault();
                     if (cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault() > 0)
                     {
-                        long ttl = cosmosCacheSessionResponse.Resource.TimeToLive.Value;
                         DateTimeOffset absoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault());
                         if (absoluteExpiration < DateTimeOffset.UtcNow)
                         {
@@ -136,30 +138,30 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 return cosmosCacheSessionResponse.Resource.Content;
                             }
 
-                            if (pendingSeconds < ttl)
+                            if (pendingSeconds < timeToLive)
                             {
-                                cosmosCacheSessionResponse.Resource.TimeToLive = (long)pendingSeconds;
+                                // Cap the ttl so the item is not extended beyond its absolute expiration.
+                                timeToLive = (long)pendingSeconds;
                             }
                         }
                     }
 
-                    cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
-                    ItemResponse<CosmosCacheSession> replaceCacheSessionResponse = await this.cosmosContainer.ReplaceItemAsync(
+                    ItemResponse<CosmosCacheSession> patchCacheSessionResponse = await this.cosmosContainer.PatchItemAsync<CosmosCacheSession>(
                             partitionKey: new PartitionKey(key),
                             id: key,
-                            item: cosmosCacheSessionResponse.Resource,
-                            requestOptions: new ItemRequestOptions()
+                            patchOperations: new List<PatchOperation>() { PatchOperation.Set("/ttl", timeToLive) },
+                            requestOptions: new PatchItemRequestOptions()
                             {
                                 IfMatchEtag = cosmosCacheSessionResponse.ETag,
                                 EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
 
-                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
+                    this.options.DiagnosticsHandler?.Invoke(patchCacheSessionResponse.Diagnostics);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
-                    // The cache item has expired in-between the read and replace operations.
+                    // The cache item has expired in-between the read and patch operations.
                     this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                     return null;
                 }
@@ -168,7 +170,7 @@ namespace Microsoft.Extensions.Caching.Cosmos
                     this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                     if (this.options.RetrySlidingExpirationUpdates)
                     {
-                        // Race condition on replace, we need to get the latest version of the item
+                        // Race condition on patch, we need to get the latest version of the item
                         return await this.GetAsync(key, token).ConfigureAwait(false);
                     }
                 }
@@ -214,13 +216,15 @@ namespace Microsoft.Extensions.Caching.Cosmos
                 return;
             }
 
+            // If using sliding expiration then patch the item's ttl (which updates its _ts) to reset the sliding
+            // expiration window in Cosmos without re-sending the whole document (including its content).
             if (cosmosCacheSessionResponse.Resource.IsSlidingExpiration.GetValueOrDefault())
             {
                 try
                 {
+                    long timeToLive = cosmosCacheSessionResponse.Resource.TimeToLive.GetValueOrDefault();
                     if (cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault() > 0)
                     {
-                        long ttl = cosmosCacheSessionResponse.Resource.TimeToLive.Value;
                         DateTimeOffset absoluteExpiration = DateTimeOffset.FromUnixTimeSeconds(cosmosCacheSessionResponse.Resource.AbsoluteSlidingExpiration.GetValueOrDefault());
                         if (absoluteExpiration < DateTimeOffset.UtcNow)
                         {
@@ -238,35 +242,35 @@ namespace Microsoft.Extensions.Caching.Cosmos
                                 return;
                             }
 
-                            if (pendingSeconds < ttl)
+                            if (pendingSeconds < timeToLive)
                             {
-                                cosmosCacheSessionResponse.Resource.TimeToLive = (long)pendingSeconds;
+                                // Cap the ttl so the item is not extended beyond its absolute expiration.
+                                timeToLive = (long)pendingSeconds;
                             }
                         }
                     }
 
-                    cosmosCacheSessionResponse.Resource.PartitionKeyAttribute = this.options.ContainerPartitionKeyAttribute;
-                    ItemResponse<CosmosCacheSession> replaceCacheSessionResponse = await this.cosmosContainer.ReplaceItemAsync(
+                    ItemResponse<CosmosCacheSession> patchCacheSessionResponse = await this.cosmosContainer.PatchItemAsync<CosmosCacheSession>(
                             partitionKey: new PartitionKey(key),
                             id: key,
-                            item: cosmosCacheSessionResponse.Resource,
-                            requestOptions: new ItemRequestOptions()
+                            patchOperations: new List<PatchOperation>() { PatchOperation.Set("/ttl", timeToLive) },
+                            requestOptions: new PatchItemRequestOptions()
                             {
                                 IfMatchEtag = cosmosCacheSessionResponse.ETag,
                                 EnableContentResponseOnWrite = false,
                             },
                             cancellationToken: token).ConfigureAwait(false);
 
-                    this.options.DiagnosticsHandler?.Invoke(replaceCacheSessionResponse.Diagnostics);
+                    this.options.DiagnosticsHandler?.Invoke(patchCacheSessionResponse.Diagnostics);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
-                    // The cache item has expired in-between the read and replace operations.
+                    // The cache item has expired in-between the read and patch operations.
                     this.options.DiagnosticsHandler?.Invoke(ex.Diagnostics);
                 }
                 catch (CosmosException cosmosException) when (cosmosException.StatusCode == HttpStatusCode.PreconditionFailed)
                 {
-                    // Race condition on replace, we need do not need to refresh it
+                    // Race condition on patch, we do not need to refresh it.
                     this.options.DiagnosticsHandler?.Invoke(cosmosException.Diagnostics);
                 }
             }
